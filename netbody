@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+# pygame + PyOpenGL version of Nehe's OpenGL lesson06
+# Paul Furber 2001 - m@verick.co.za
+
+import os
+from OpenGL.GL import *
+from OpenGL.GLU import *
+import pygame, pygame.image
+from pygame.locals import *
+
+# xrot = yrot = zrot = 0.0
+# textures = [0,0]
+body_pts = []
+ydist = 0.2
+
+def init():
+	glEnable(GL_TEXTURE_2D)
+	# load_textures()
+	read_body()
+	glShadeModel(GL_SMOOTH)
+	glClearColor(0.0, 0.0, 0.0, 0.0)
+	glClearDepth(1.0)
+	glEnable(GL_DEPTH_TEST)
+	glDepthFunc(GL_LEQUAL)
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
+
+def read_body():
+	global body_pts
+	pf = open("pts")
+	# realines() on this file produces a list of strings in the format: '1.000000 1.0000000 2.000000\n'
+	body_pts_tmp = [x[:-1].split(' ') for x in pf.readlines()] 
+	for pt in body_pts_tmp:
+		body_pts.append([float(x) for x in pt])
+	# zsort so that we go from the head down
+	body_pts.sort(cmp=lambda x,y: int(y[2]*1000)-int(x[2]*1000))
+
+# def load_textures():
+	# texturefile = os.path.join('data','nehe.bmp')
+	# textureSurface = pygame.image.load(texturefile)
+	# textureData = pygame.image.tostring(textureSurface, "RGBX", 1)
+	# 
+	# glBindTexture(GL_TEXTURE_2D, textures[0])
+	# glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, textureSurface.get_width(), textureSurface.get_height(), 0,
+		# GL_RGBA, GL_UNSIGNED_BYTE, textureData );
+	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+
+def draw():
+	# global xrot, yrot, zrot
+	global body_pts, ydist
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+	glLoadIdentity()
+	glRotatef(90.0,1.0,0.0,0.0)
+	glTranslatef(0.0, ydist, -5.0)
+
+	# glRotatef(xrot,1.0,0.0,0.0)
+	# glRotatef(yrot,0.0,1.0,0.0)
+	# glRotatef(zrot,0.0,0.0,1.0)
+
+	glBegin(GL_POINTS)
+	for pt in body_pts:
+		glVertex3f(*pt)
+
+	glEnd();				
+
+	ydist = ydist + 0.0002
+	# xrot = xrot + 0.2
+	# yrot = yrot + 0.2
+	# zrot = zrot + 0.2
+
+def main():
+
+	video_flags = OPENGL|DOUBLEBUF
+	pygame.init()
+	surface = pygame.display.set_mode((640,480), video_flags)
+	init()
+	while 1:
+		event = pygame.event.poll()
+		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+			break
+		draw()
+		pygame.display.flip()
+
+if __name__ == '__main__': main()
