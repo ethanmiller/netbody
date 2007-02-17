@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# pygame + PyOpenGL version of Nehe's OpenGL lesson06
-# Paul Furber 2001 - m@verick.co.za
 
 import os
 from OpenGL.GL import *
@@ -8,8 +6,6 @@ from OpenGL.GLU import *
 import pygame, pygame.image
 from pygame.locals import *
 
-# xrot = yrot = zrot = 0.0
-# textures = [0,0]
 body_pts = []
 ydist = 0.2
 
