@@ -8,6 +8,7 @@ from pygame.locals import *
 
 body_pts = []
 ydist = 0.2
+testx = testy = testz = 0.0
 
 def init():
 	glEnable(GL_TEXTURE_2D)
@@ -19,6 +20,16 @@ def init():
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
+
+def resize((width, height)):
+    if height==0:
+        height=1
+    glViewport(0, 0, width, height)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(45, 1.0*width/height, 0.1, 100.0)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
 
 def read_body():
 	global body_pts
@@ -41,18 +52,39 @@ def read_body():
 	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
 	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
 
-def draw():
-	# global xrot, yrot, zrot
+def test_draw():
+	global testx, testy, testz
+	qu = gluNewQuadric()
+	
+	glPushMatrix()
+	glTranslatef(testx, 0.0, -5.0)
+	glColor3f(1.0, 0.0, 0.0) # red x axis
+	gluSphere(qu, 0.05, 16, 16)
+	glPopMatrix()
+
+	glPushMatrix()
+	glTranslatef(0.0, testy, -5.0)
+	glColor3f(0.0, 1.0, 0.0) # green y axis
+	gluSphere(qu, 0.05, 16, 16)
+	glPopMatrix()
+
+	glPushMatrix()
+	glTranslatef(0.0, 0.0, testz - 5.0)
+	glColor3f(0.0, 0.0, 1.0) # blue z axis
+	gluSphere(qu, 0.05, 16, 16)
+	glPopMatrix()
+
+	testx = testx + 0.0002
+	testy = testy + 0.0002
+	testz = testz + 0.0002
+
+def body_draw():
 	global body_pts, ydist
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-	glLoadIdentity()
-	glRotatef(90.0,1.0,0.0,0.0)
-	glTranslatef(0.0, ydist, -5.0)
-
-	# glRotatef(xrot,1.0,0.0,0.0)
-	# glRotatef(yrot,0.0,1.0,0.0)
-	# glRotatef(zrot,0.0,0.0,1.0)
+	glColor3f(1.0, 1.0, 1.0)
+	glPushMatrix()
+	glRotatef(270.0,1.0,0.0,0.0)
+	glTranslatef(0.0, ydist, -5.25)
 
 	glBegin(GL_POINTS)
 	for pt in body_pts:
@@ -60,22 +92,23 @@ def draw():
 
 	glEnd();				
 
+	glPopMatrix()
 	ydist = ydist + 0.0002
-	# xrot = xrot + 0.2
-	# yrot = yrot + 0.2
-	# zrot = zrot + 0.2
 
 def main():
-
 	video_flags = OPENGL|DOUBLEBUF
 	pygame.init()
 	surface = pygame.display.set_mode((640,480), video_flags)
+	resize((640,480))
 	init()
 	while 1:
 		event = pygame.event.poll()
 		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
 			break
-		draw()
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+		glLoadIdentity()
+		body_draw()
+		test_draw()
 		pygame.display.flip()
 
 if __name__ == '__main__': main()
