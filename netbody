@@ -5,41 +5,31 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 import pygame, pygame.image
 from pygame.locals import *
+import body
 
-body_pts = []
-ydist = 0.2
 testx = testy = testz = 0.0
+ghost = body.Body()
 
 def init():
 	glEnable(GL_TEXTURE_2D)
 	# load_textures()
-	read_body()
 	glShadeModel(GL_SMOOTH)
 	glClearColor(0.0, 0.0, 0.0, 0.0)
 	glClearDepth(1.0)
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
+	
 
 def resize((width, height)):
-    if height==0:
-        height=1
-    glViewport(0, 0, width, height)
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    gluPerspective(45, 1.0*width/height, 0.1, 100.0)
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
-
-def read_body():
-	global body_pts
-	pf = open("pts")
-	# realines() on this file produces a list of strings in the format: '1.000000 1.0000000 2.000000\n'
-	body_pts_tmp = [x[:-1].split(' ') for x in pf.readlines()] 
-	for pt in body_pts_tmp:
-		body_pts.append([float(x) for x in pt])
-	# zsort so that we go from the head down
-	body_pts.sort(cmp=lambda x,y: int(y[2]*1000)-int(x[2]*1000))
+	if height==0:
+		height=1
+	glViewport(0, 0, width, height)
+	glMatrixMode(GL_PROJECTION)
+	glLoadIdentity()
+	gluPerspective(45, 1.0*width/height, 0.1, 1000.0)
+	glMatrixMode(GL_MODELVIEW)
+	glLoadIdentity()
 
 # def load_textures():
 	# texturefile = os.path.join('data','nehe.bmp')
@@ -51,6 +41,18 @@ def read_body():
 		# GL_RGBA, GL_UNSIGNED_BYTE, textureData );
 	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
 	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+
+def quintcurve():
+	'''
+	var t = _timeNow - _timeStart;  // current time (frames, seconds)
+	var b = _propStart;             // beginning value
+	var c = _propDest - _propStart; // change in value
+	var d = _timeDest - _timeStart; // duration (frames, seconds)
+	
+	// quintic (t^5) easing in/out - acceleration until halfway, then deceleration
+	if ((t/=d/2) < 1) return c/2*t*t*t*t*t + b;
+	return c/2*((t-=2)*t*t*t*t + 2) + b;
+	'''
 
 def test_draw():
 	global testx, testy, testz
@@ -78,37 +80,29 @@ def test_draw():
 	testy = testy + 0.0002
 	testz = testz + 0.0002
 
-def body_draw():
-	global body_pts, ydist
-
-	glColor3f(1.0, 1.0, 1.0)
-	glPushMatrix()
-	glRotatef(270.0,1.0,0.0,0.0)
-	glTranslatef(0.0, ydist, -5.25)
-
-	glBegin(GL_POINTS)
-	for pt in body_pts:
-		glVertex3f(*pt)
-
-	glEnd();				
-
-	glPopMatrix()
-	ydist = ydist + 0.0002
-
 def main():
+	global ghost
 	video_flags = OPENGL|DOUBLEBUF
 	pygame.init()
 	surface = pygame.display.set_mode((640,480), video_flags)
 	resize((640,480))
 	init()
+	ydist = 1.0
 	while 1:
 		event = pygame.event.poll()
 		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
 			break
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		glLoadIdentity()
-		body_draw()
-		test_draw()
+	
+		glPushMatrix()
+		glRotatef(270.0,1.0,0.0,0.0)
+		glTranslatef(0.0, ydist, -5.25)
+		ydist += .9
+		ghost.draw()
+		#test_draw()
+		glPopMatrix()
+	
 		pygame.display.flip()
 
 if __name__ == '__main__': main()
