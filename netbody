@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 
-import os
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import pygame, pygame.image
 from pygame.locals import *
-import body
+import choreography
 
-testx = testy = testz = 0.0
-ghost = body.Body()
+coord = choreography.Manager()
 
 def init():
 	glEnable(GL_TEXTURE_2D)
-	# load_textures()
 	glShadeModel(GL_SMOOTH)
 	glClearColor(0.0, 0.0, 0.0, 0.0)
 	glClearDepth(1.0)
@@ -27,82 +24,25 @@ def resize((width, height)):
 	glViewport(0, 0, width, height)
 	glMatrixMode(GL_PROJECTION)
 	glLoadIdentity()
-	gluPerspective(45, 1.0*width/height, 0.1, 1000.0)
+	gluPerspective(45, 1.0*width/height, 0.1, 300000.0)
 	glMatrixMode(GL_MODELVIEW)
 	glLoadIdentity()
 
-# def load_textures():
-	# texturefile = os.path.join('data','nehe.bmp')
-	# textureSurface = pygame.image.load(texturefile)
-	# textureData = pygame.image.tostring(textureSurface, "RGBX", 1)
-	# 
-	# glBindTexture(GL_TEXTURE_2D, textures[0])
-	# glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, textureSurface.get_width(), textureSurface.get_height(), 0,
-		# GL_RGBA, GL_UNSIGNED_BYTE, textureData );
-	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-	# glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-
-def quintcurve():
-	'''
-	var t = _timeNow - _timeStart;  // current time (frames, seconds)
-	var b = _propStart;             // beginning value
-	var c = _propDest - _propStart; // change in value
-	var d = _timeDest - _timeStart; // duration (frames, seconds)
-	
-	// quintic (t^5) easing in/out - acceleration until halfway, then deceleration
-	if ((t/=d/2) < 1) return c/2*t*t*t*t*t + b;
-	return c/2*((t-=2)*t*t*t*t + 2) + b;
-	'''
-
-def test_draw():
-	global testx, testy, testz
-	qu = gluNewQuadric()
-	
-	glPushMatrix()
-	glTranslatef(testx, 0.0, -5.0)
-	glColor3f(1.0, 0.0, 0.0) # red x axis
-	gluSphere(qu, 0.05, 16, 16)
-	glPopMatrix()
-
-	glPushMatrix()
-	glTranslatef(0.0, testy, -5.0)
-	glColor3f(0.0, 1.0, 0.0) # green y axis
-	gluSphere(qu, 0.05, 16, 16)
-	glPopMatrix()
-
-	glPushMatrix()
-	glTranslatef(0.0, 0.0, testz - 5.0)
-	glColor3f(0.0, 0.0, 1.0) # blue z axis
-	gluSphere(qu, 0.05, 16, 16)
-	glPopMatrix()
-
-	testx = testx + 0.0002
-	testy = testy + 0.0002
-	testz = testz + 0.0002
 
 def main():
-	global ghost
+	global coord
 	video_flags = OPENGL|DOUBLEBUF
 	pygame.init()
 	surface = pygame.display.set_mode((640,480), video_flags)
 	resize((640,480))
 	init()
-	ydist = 1.0
 	while 1:
 		event = pygame.event.poll()
 		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
 			break
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		glLoadIdentity()
-	
-		glPushMatrix()
-		glRotatef(270.0,1.0,0.0,0.0)
-		glTranslatef(0.0, ydist, -5.25)
-		ydist += .9
-		ghost.draw()
-		#test_draw()
-		glPopMatrix()
-	
+		coord.draw()
 		pygame.display.flip()
 
 if __name__ == '__main__': main()
