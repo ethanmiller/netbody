@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 from OpenGL.GL import *
-from OpenGL.GLU import *
-import pygame, pygame.image
+from OpenGL.GLU import gluPerspective
+import pygame, Image
 from pygame.locals import *
 import choreography
 
 coord = choreography.Manager()
+size = (800, 450)
 
 def init():
 	glEnable(GL_TEXTURE_2D)
@@ -30,12 +31,13 @@ def resize((width, height)):
 
 
 def main():
-	global coord
+	global coord, size
 	video_flags = OPENGL|DOUBLEBUF
 	pygame.init()
-	surface = pygame.display.set_mode((640,480), video_flags)
-	resize((640,480))
+	surface = pygame.display.set_mode(size, video_flags)
+	resize(size)
 	init()
+	count = 0
 	while 1:
 		event = pygame.event.poll()
 		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
@@ -44,5 +46,17 @@ def main():
 		glLoadIdentity()
 		coord.draw()
 		pygame.display.flip()
+		#saveFrame("output/frame%04d.png" % count)
+		count += 1
+
+def saveFrame(filename, format="PNG" ):
+	"""Save current buffer to filename in format"""
+	global size
+	width, height = size
+	glPixelStorei(GL_PACK_ALIGNMENT, 1)
+	data = glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE)
+	image = Image.fromstring("RGB", (width, height), data)
+	image = image.transpose(Image.FLIP_TOP_BOTTOM)
+	image.save(filename, format)
 
 if __name__ == '__main__': main()
