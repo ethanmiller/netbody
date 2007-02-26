@@ -1,10 +1,9 @@
 import body
-from OpenGL.GL import *
 
 class Manager:
 	def __init__(self):
 		self.frames = 500 # how many frames one cycle should last
-		self.breakpoint = 300 # the breakpoint determines the time for the switch
+		self.breakpoint = 450 # the breakpoint determines the time for the switch
 		self.counter = 0
 		self.scaled = 500.0 # how much bigger large body is
 		self.starty = 15 # starting point for body centered in view
