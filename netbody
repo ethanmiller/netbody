@@ -11,6 +11,10 @@ size = (800, 450)
 
 def init():
 	glEnable(GL_TEXTURE_2D)
+	glEnable(GL_NORMALIZE)
+	glEnable(GL_LIGHTING)
+	glEnable(GL_LIGHT0)
+	glLightfv(GL_LIGHT0, GL_POSITION, (0.3, 0.4, 1.0, 0.0))
 	glShadeModel(GL_SMOOTH)
 	glClearColor(0.0, 0.0, 0.0, 0.0)
 	glClearDepth(1.0)
@@ -46,7 +50,7 @@ def main():
 		glLoadIdentity()
 		coord.draw()
 		pygame.display.flip()
-		#saveFrame("output/frame%04d.png" % count)
+		saveFrame("output/frame%04d.png" % count)
 		count += 1
 
 def saveFrame(filename, format="PNG" ):

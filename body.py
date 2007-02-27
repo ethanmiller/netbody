@@ -20,7 +20,6 @@ class Body:
 			self.pos = orig
 	
 	def draw(self):
-		glColor3f(1.0, 1.0, 1.0)
 		glPushMatrix()
 		glRotatef(270.0,1.0,0.0,0.0)
 		glTranslatef(0.0, self.pos[0], self.pos[1]*self.scale)
@@ -52,7 +51,10 @@ class BodyPoint(UserList):
 		self.data = xyz
 		# pt_type : 0 = regular body point, 1 = "landscape" point, 2 = crown point
 		self.pt_type = type
-		self.images = [ImagePlane(self.data, type==2 and landscape_mode, type==1) for x in range(1)]
+		if type == 1:
+			self.images = [ImagePlane(self.data, type==2 and landscape_mode, type==1) for x in range(1)]
+		else:
+			self.images = [ImagePlane(self.data, type==2 and landscape_mode, type==1) for x in range(5)]
 	
 	def draw(self):
 		for i in self.images:
@@ -62,29 +64,43 @@ class BodyPoint(UserList):
 class ImagePlane:
 	def __init__(self, dest, anim, landscape):
 		self.anim = anim
-		rand_range = 0.5
+		rand_range = 0.005
 		self.dest = [random.uniform(x-rand_range, x+rand_range) for x in dest]
 		self.angle = random.random()*360
 		self.rotvec = [random.random() for x in range(3)]
+		self.color = (1.0, 1.0, 1.0, 0.5)
 		if anim:
-			self.pos = (0.0, 0.0, -5.14)
+			self.pos = (0.0, 0.0, 5.14)
 			self.scale = 0.002 # 1/500th - this will scale up as it moves to it's destination...
+			self.color = (0.0, 1.0, 0.0, 0.5)
 		else:
 			self.pos = self.dest
 			if landscape:
 				# scale so that we're smaller closer to center
-				max = 1.1 # based on the current body model
+				maxdist = 1.1 # based on the current body model
+				maxscale = 0.5
 				dist = math.sqrt(dest[0]*dest[0] + dest[1]*dest[1])			
-				# two points (max, 1.0), (0, .002)
-				slope = 0.998/max
+				self.color = (1.0, 0.0, 0.0, 0.5)
+				# two points (maxdist, maxscale), (0, .002)
+				slope = (maxscale - .002)/maxdist
+				#sub known vars
+				#1.0 = slope*maxdist + b
+				# solve for b
+				b = maxscale - slope*maxdist
+				# for a given x
+				self.scale = slope*dist + b
 			else:
 				self.scale = 1.0
 
 	def draw(self):
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, self.color)
+		#glMaterialfv(GL_FRONT, GL_SHININESS, [1.0, 1.0, 1.0, 1.0])
+		#glColor3f(self.color[0],self.color[1],self.color[2])
 		glPushMatrix()
 		glTranslatef(*self.pos)
+		glScalef(self.scale, self.scale, self.scale)
 		glRotatef(self.angle, *self.rotvec)
-		glBegin(GL_LINE_STRIP)
+		glBegin(GL_POLYGON)
 		# doing a 3x4 rec for now
 		glVertex3f(0.0, 0.0, 0.0)
 		glVertex3f(0.3, 0.0, 0.0)
