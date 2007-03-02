@@ -6,8 +6,8 @@ class Manager:
 		self.breakpoint = 450 # the breakpoint determines the time for the switch
 		self.counter = 0
 		self.scaled = 500.0 # how much bigger large body is
-		self.starty = 15 # starting point for body centered in view
-		self.zoffset = -5.14 # offset from center of body, to forehead level
+		self.starty = 100 # starting point for body centered in view
+		self.zoffset = -35.4 # offset from center of body, to forehead level
 
 		self.desty = self.scaled * self.starty
 
