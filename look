@@ -4,24 +4,25 @@ from OpenGL.GL import *
 from OpenGL.GLU import gluPerspective
 import pygame, Image
 from pygame.locals import *
-import choreography
+import manager, collector
 
-coord = choreography.Manager()
+pm = manager.Manager()
+net = collector.Collector()
 size = (800, 450)
 
 def init():
 	glEnable(GL_TEXTURE_2D)
 	glEnable(GL_NORMALIZE)
-	glEnable(GL_LIGHTING)
-	glEnable(GL_LIGHT0)
-	glLightfv(GL_LIGHT0, GL_POSITION, (0.3, 0.4, 1.0, 0.0))
+	#glEnable(GL_LIGHTING)
+	#glEnable(GL_LIGHT0)
+	glEnable(GL_BLEND)
+	#glLightfv(GL_LIGHT0, GL_POSITION, (0.3, 0.4, 1.0, 0.0))
 	glShadeModel(GL_SMOOTH)
-	glClearColor(0.0, 0.0, 0.0, 0.0)
+	glClearColor(0.9, 0.9, 0.85, 0.0)
 	glClearDepth(1.0)
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
-	
 
 def resize((width, height)):
 	if height==0:
@@ -29,29 +30,42 @@ def resize((width, height)):
 	glViewport(0, 0, width, height)
 	glMatrixMode(GL_PROJECTION)
 	glLoadIdentity()
-	gluPerspective(45, 1.0*width/height, 0.1, 300000.0)
+	gluPerspective(45, 1.0*width/height, 0.1, 500.0)
 	glMatrixMode(GL_MODELVIEW)
 	glLoadIdentity()
 
-
 def main():
-	global coord, size
+	global pm, size
 	video_flags = OPENGL|DOUBLEBUF
 	pygame.init()
 	surface = pygame.display.set_mode(size, video_flags)
 	resize(size)
 	init()
-	count = 0
+	count, zrot, proxbounds, proxdir, prox = (0, 0.0, (-20, -60), 1, -60)
 	while 1:
 		event = pygame.event.poll()
 		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
 			break
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		glLoadIdentity()
-		coord.draw()
+		# push away, and slowly rotate
+		glPushMatrix()
+		glTranslate(0.0, 0.0, prox)
+		glRotatef(-50.0, 1.0, 0.0, 0.0)
+		glRotatef(zrot, 0.0, 0.0, 1.0)
+		glTranslate(-50.0, -50.0, -15.0)
+		pm.draw(net.data())
+		glPopMatrix()
+
 		pygame.display.flip()
-		saveFrame("output/frame%04d.png" % count)
+		#saveFrame("output/frame%05d.png" % count)
 		count += 1
+		prox += proxdir/32.0
+		if prox >= proxbounds[0] or prox <= proxbounds[1]:
+			proxdir *= -1
+		zrot += 0.025
+		if zrot > 360:
+			zrot %= 360
 
 def saveFrame(filename, format="PNG" ):
 	"""Save current buffer to filename in format"""
