@@ -1,5 +1,4 @@
-import math
-import infobj, collector
+import infobj, collector, util
 
 class Manager:
 	def __init__(self):
@@ -12,14 +11,12 @@ class Manager:
 		attention_at = self.attention.draw()
 		for d in dat:
 			self.bits.append(infobj.Bit(d))
-		kill_list = []
+		kill_list = [] # bits that have floated too far away
 		for i, b in enumerate(self.bits):
 			b.draw(attention_at)
-			diff = [50.0-b.pos[0], 50.0-b.pos[1], 23.0-b.pos[2]] #from center of figure
-			dist = math.sqrt(reduce(lambda x, y: x+y, [v*v for v in diff]))
-			if dist > 60:
+			dist = util.distance(util.CONST.CENTER, b.pos)
+			if dist > util.CONST.BIT_DRIFT_LIMIT:
 				kill_list.append(i)
-		if kill_list:
-			for k in kill_list:
-				del(self.bits[k])
+		for k in kill_list:
+			del(self.bits[k])
 		
