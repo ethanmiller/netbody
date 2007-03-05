@@ -1,17 +1,17 @@
 from OpenGL.GL import *
-import random, math
+from OpenGL.GLU import gluProject
+import random, math, util
 
 class Attention:
 	def __init__(self):
 		self.read_body()
-		self.indx = 4901 # next dest in points list
-		self.steps = 16.0 # how many places in between pts
-		self.pos = self.pts[4900]
-		self.dest = self.pts[4901]
-		self.inc = [(x[1] - x[0])/self.steps for x in zip(self.pos, self.dest)]
+		self.indx = util.CONST.ATT_POS_INDX_START + 1 # next dest in points list
+		self.pos = self.pts[util.CONST.ATT_POS_INDX_START]
+		self.dest = self.pts[self.indx]
+		self.inc = [(x[1] - x[0])/util.CONST.ATT_ANI_STEPS for x in zip(self.pos, self.dest)]
 
 	def draw(self):
-		glColor3f(1.0, 0.0, 0.0)
+		glColor3f(*util.CONST.ATTCOLOR)
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, (1.0, 0.0, 0.0, 1.0))
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, (0.0, 0.0, 0.0, 0.0))
 		glBlendFunc(GL_ONE, GL_ZERO)
@@ -21,16 +21,24 @@ class Attention:
 		self.cube()
 		glEnd()
 		glPopMatrix()
+		self.set_screen_pos()
 		#print self.pos, self.dest
 		if self.pos == self.dest:
 			self.indx += 1
 			if self.indx > self.ptct:
 				self.indx %= self.ptct
 			self.dest = self.pts[self.indx]
-			self.inc = [(x[1] - x[0])/self.steps for x in zip(self.pos, self.dest)]
+			self.inc = [(x[1] - x[0])/util.CONST.ATT_ANI_STEPS for x in zip(self.pos, self.dest)]
 		self.pos = [x[0] + x[1] for x in zip(self.pos, self.inc)]
 		#self.draw_dots()
 		return self.pos
+
+	def set_screen_pos(self):
+		model = glGetDoublev(GL_MODELVIEW_MATRIX);
+		proj = glGetDoublev(GL_PROJECTION_MATRIX);
+		view = glGetIntegerv(GL_VIEWPORT);
+		retx, rety, retz = gluProject(self.pos[0], self.pos[1], self.pos[2], model, proj, view)
+		self.screenpos = (retx, util.CONST.VIZSIZE[1] - rety, retz)
 
 	def cube(self):
 		# Front Face 
@@ -87,14 +95,14 @@ class Attention:
 class Bit:
 	def __init__(self, data):
 		# TODO connect data
-		self.pos = [50.0, 50.0, 23.0]
-		self.vec = [random.uniform(-0.005, 0.005) for x in range(3)]
+		self.pos = util.CONST.CENTER
+		self.vec = [random.uniform(*util.CONST.BIT_TRAJ_VEC_RANGE) for x in range(3)]
 		self.deg = 0.0
+		self.rotinc = random.uniform(*util.CONST.BIT_ROT_INC_RANGE)
 		self.rotvec = [random.random() for x in range(3)]
 		self.stuck = False
-		self.stucklimit = 50000
-		self.stuckct = self.stucklimit
-		self.alpha = 0.2
+		self.stuckct = util.CONST.BIT_STUCK_LIMIT
+		self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
 		#len = math.sqrt(reduce(lambda x, y: x+y, [x*x for x in self.vec]))
 		#self.vec = [x/len for x in self.vec]
 		#self.rate = 
@@ -125,12 +133,13 @@ class Bit:
 			self.stuckct -= 1
 			if self.stuckct == 0:
 				#print 'unnstuck'
-				self.stuckct = self.stucklimit
+				self.stuckct = util.CONST.BIT_STUCK_LIMIT
 				self.stuck = False
-				self.alpha = 0.2
+				self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
 			return
-		diff = [x[1]-x[0] for x in zip(self.pos, atat)]
-		dist = math.sqrt(reduce(lambda x, y: x+y, [z*z for z in diff]))
+		#diff = [x[1]-x[0] for x in zip(self.pos, atat)]
+		#dist = math.sqrt(reduce(lambda x, y: x+y, [z*z for z in diff]))
+		dist = util.distance(self.pos, atat)
 		if dist < 1.0:
 			#print 'ehh stuck'
 			self.stuck = True
@@ -139,6 +148,6 @@ class Bit:
 
 		# update pos, rot
 		self.pos = [x[0] + x[1] for x in zip(self.pos, self.vec)]
-		self.deg += 1.5
+		self.deg += self.rotinc
 		if self.deg > 360:
 			self.deg %= 360
