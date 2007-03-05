@@ -7,6 +7,8 @@ class CONST:
 	CENTER = (50.0, 50.0, 23.0)
 	ROTATE_RATE = 0.025
 	PROXIMITY_RANGE = (-20, -60)
+	PANEL_WIDTH = 120
+	PANEL_PADDING = 5
 	# data collection const - these pased on the yahoo pipes feed I created...
 	FEED_URL = 'http://pipes.yahoo.com/pipes/eBEyVbXK2xGId7CoE2_cUw/run?_render=json'
 	TITLE_FLICKR_RECENT = 'flickr_recent'

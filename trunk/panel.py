@@ -7,19 +7,19 @@ class Panel:
 
 	def draw(self, dat, atat):
 		#at = self.screen_att(atat)
-		glColor4f(0.4, 0.4, 1.0, 1.0)
+		glColor4f(0.6, 0.6, 0.55, 1.0)
 		glBegin(GL_QUADS)
-		glVertex2f(10.0, 10.0)
-		glVertex2f(200.0, 10.0)
-		glVertex2f(200.0, 200.0)
-		glVertex2f(10.0, 200.0)
+		glVertex2f(util.CONST.PANEL_PADDING, util.CONST.PANEL_PADDING)
+		glVertex2f(util.CONST.PANEL_WIDTH, util.CONST.PANEL_PADDING)
+		glVertex2f(util.CONST.PANEL_WIDTH, util.CONST.VIZSIZE[1] - util.CONST.PANEL_PADDING * 2)
+		glVertex2f(util.CONST.PANEL_PADDING,  util.CONST.VIZSIZE[1] - util.CONST.PANEL_PADDING * 2)
 		glEnd()
 
-		at_xdiff = atat[0] - 200.0
+		at_xdiff = atat[0] - util.CONST.PANEL_WIDTH
 		glBegin(GL_LINE_STRIP)
-		glVertex3f(200.0, 200.0, 0.0)
-		glVertex3f(at_xdiff/2.0 + 200.0, 200.0, 0.0)
-		glVertex3f(at_xdiff/2.0 + 200.0, atat[1], 0.0)
+		glVertex3f(util.CONST.PANEL_WIDTH, 430.0, 0.0)
+		glVertex3f(at_xdiff/2.0 + util.CONST.PANEL_WIDTH, 430.0, 0.0)
+		glVertex3f(at_xdiff/2.0 + util.CONST.PANEL_WIDTH, atat[1], 0.0)
 		glVertex3f(*atat)
 		glEnd()
 
