@@ -109,7 +109,7 @@ class Bit:
 
 	def draw(self, atat):
 		# atat = where attention is currently at
-		glColor4f(0.4, 1.0, 0.1, self.alpha)
+		glColor4f(0.4, 0.4, 0.4, self.alpha)
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, (0.0, 1.0, 0.0, self.alpha))
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (0.0, 0.0, 0.0, 0.0))
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, (0.0, 0.0, 0.0, 0.0))

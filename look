@@ -15,6 +15,7 @@ def init():
 	glEnable(GL_NORMALIZE)
 	#glEnable(GL_LIGHTING)
 	#glEnable(GL_LIGHT0)
+	glEnable(GL_TEXTURE_2D)
 	glEnable(GL_BLEND)
 	#glLightfv(GL_LIGHT0, GL_POSITION, (0.3, 0.4, 1.0, 0.0))
 	glShadeModel(GL_SMOOTH)
@@ -75,7 +76,7 @@ def main():
 		#saveFrame("output/frame%05d.png" % count)
 		count += 1
 		prox += proxdir/32.0
-		if util.CONST.PROXIMITY_RANGE[0] <= prox >= util.CONST.PROXIMITY_RANGE[1]:
+		if prox <= util.CONST.PROXIMITY_RANGE[0] or prox >= util.CONST.PROXIMITY_RANGE[1]:
 			proxdir *= -1
 		zrot += util.CONST.ROTATE_RATE
 		if zrot > 360:

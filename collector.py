@@ -6,7 +6,7 @@ class Collector:
 		self.jpgstr = re.compile("http[^'\"]*\.jpg")
 	
 	def data(self):
-		return [x for x in range(random.randint(0, 6))]
+		return [x for x in range(random.randint(0, 2))]
 
 	def proc_json(self):
 		feed = urllib.urlopen(util.CONST.FEED_URL)
@@ -14,11 +14,24 @@ class Collector:
 		for entry in jobj['value']['items']:
 			if entry['title'] == util.CONST.TITLE_FLICKR_RECENT:
 				words, images = self.proc_flickr(entry)
+				# dl images
+				for i in images:
+					self.store_img(i)
 			elif entry['title'] == util.CONST.TITLE_NEWS_TOP:
 				words, images = self.proc_news_top(entry)
+				# dl images
+				for i in images:
+					self.store_img(i)
 			elif entry['title'] == util.CONST.TITLE_NEWS_PHOTOS:
 				words, images = self.proc_news_photos(entry)
-				print words, images
+				# dl images
+				for i in images:
+					self.store_img(i)
+
+	def store_img(self, url):
+		fname = 'resources/%s' % url.split('/')[-1]
+		urllib.urlretrieve(url, fname)
+		print 'got %s' % fname
 
 	def proc_news_photos(self, entry):
 		w = entry['y:content_analysis'].split(' ')
