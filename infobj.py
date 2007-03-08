@@ -1,6 +1,6 @@
 from OpenGL.GL import *
 from OpenGL.GLU import gluProject
-import random, math, util
+import random, math, util, Image
 
 class Attention:
 	def __init__(self):
@@ -86,15 +86,14 @@ class Attention:
 		glPopMatrix()
 
 	def read_body(self):
-		pf = open("pts")
+		pf = open("resources/pts")
 		# realines() on this file produces a list of strings in the format: '1,1,2\n'
 		pts_tmp = [x[:-1].split(',') for x in pf.readlines() if not x.startswith('#')] 
 		self.pts = [[int(y) for y in x] for x in pts_tmp]
 		self.ptct = len(self.pts)-1
 
 class Bit:
-	def __init__(self, data):
-		# TODO connect data
+	def __init__(self, imgstring):
 		self.pos = util.CONST.CENTER
 		self.vec = [random.uniform(*util.CONST.BIT_TRAJ_VEC_RANGE) for x in range(3)]
 		self.deg = 0.0
@@ -103,13 +102,24 @@ class Bit:
 		self.stuck = False
 		self.stuckct = util.CONST.BIT_STUCK_LIMIT
 		self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
-		#len = math.sqrt(reduce(lambda x, y: x+y, [x*x for x in self.vec]))
-		#self.vec = [x/len for x in self.vec]
-		#self.rate = 
+		self.simg = imgstring
+		# make image object with enough padding to get powers of 2 dimensions
+		netimg = Image.open(imgstring)
+		imgsize = (util.pow2(netimg.size[0]), util.pow2(netimg.size[1]))
+		self.panelsize = (netimg.size[0], netimg.size[1])
+		self.oimg = Image.new('RGB', imgsize, (0, 0, 0))
+		self.oimg.paste(netimg, (0, 0))
+		self.texture = 0
+
+	def set_texture(self):
+		glBindTexture(GL_TEXTURE_2D, self.texture)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.oimg.size[0], self.oimg.size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, self.oimg.tostring())
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
 
 	def draw(self, atat):
 		# atat = where attention is currently at
-		glColor4f(0.4, 0.4, 0.4, self.alpha)
+		glColor4f(1.0, 1.0, 1.0, self.alpha)
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, (0.0, 1.0, 0.0, self.alpha))
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (0.0, 0.0, 0.0, 0.0))
 		#glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, (0.0, 0.0, 0.0, 0.0))
@@ -120,11 +130,12 @@ class Bit:
 		glPushMatrix()
 		glTranslate(*self.pos)
 		glRotate(self.deg, *self.rotvec)
+		self.set_texture()
 		glBegin(GL_QUADS)
-		glVertex3f(0.0, 0.0, 0.0)
-		glVertex3f(1.0, 0.0, 0.0)
-		glVertex3f(1.0, 1.0, 0.0)
-		glVertex3f(0.0, 1.0, 0.0)
+		glTexCoord2f(0.0, 0.0); glVertex3f(0.0, 0.0, 0.0)
+		glTexCoord2f(1.0, 0.0); glVertex3f(self.panelsize[0]/100, 0.0, 0.0)
+		glTexCoord2f(1.0, 1.0); glVertex3f(self.panelsize[0]/100, self.panelsize[1]/100, 0.0)
+		glTexCoord2f(0.0, 1.0); glVertex3f(0.0 , self.panelsize[1]/100, 0.0)
 		glEnd()
 		glPopMatrix()
 

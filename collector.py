@@ -1,12 +1,14 @@
 import util
-import random, simplejson, urllib, re
+import random, simplejson, urllib, re, os
 
 class Collector:
 	def __init__(self):
 		self.jpgstr = re.compile("http[^'\"]*\.jpg")
 	
 	def data(self):
-		return [x for x in range(random.randint(0, 2))]
+		images = filter(lambda x: not x.startswith('.'), os.listdir('resources/images'))
+		# TODO do this intelligently
+		return ['resources/images/%s' % random.choice(images) for x in range(random.randint(0, 6))]
 
 	def proc_json(self):
 		feed = urllib.urlopen(util.CONST.FEED_URL)

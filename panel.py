@@ -3,7 +3,7 @@ import util, time, Image, ImageDraw, ImageFont
 
 class Panel:
 	def __init__(self):
-		self.font = ImageFont.truetype('NewMedia.ttf', 12)
+		self.font = ImageFont.truetype('resources/NewMedia.ttf', 12)
 		self.time_tex = 0
 
 	def draw(self, dat, atat):

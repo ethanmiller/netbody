@@ -49,7 +49,7 @@ def main():
 	pygame.init()
 	surface = pygame.display.set_mode(util.CONST.VIZSIZE, video_flags)
 	init()
-	count, zrot, proxdir, prox = (0, 0.0, 1, -60)
+	count, zrot, proxdir, prox = (0, 0.0, -1, -20)
 	while 1:
 		event = pygame.event.poll()
 		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
@@ -73,7 +73,8 @@ def main():
 		panel.draw(dat, pm.attention.screenpos)
 
 		pygame.display.flip()
-		#saveFrame("output/frame%05d.png" % count)
+		if util.CONST.SAVE_FRAMES:
+			saveFrame("output/frame%05d.png" % count)
 		count += 1
 		prox += proxdir/32.0
 		if prox <= util.CONST.PROXIMITY_RANGE[0] or prox >= util.CONST.PROXIMITY_RANGE[1]:
