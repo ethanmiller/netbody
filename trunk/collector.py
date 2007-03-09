@@ -8,7 +8,9 @@ class Collector:
 	def data(self):
 		images = filter(lambda x: not x.startswith('.'), os.listdir('resources/images'))
 		# TODO do this intelligently
-		return ['resources/images/%s' % random.choice(images) for x in range(random.randint(0, 1))]
+		# data structure for an image + associated words.. possibly more than one...
+		# [{'img' : '/path/to/image', 'words' : ['a', 'b', 'c']}, {..}, ...]
+		return [{'img' : 'resources/images/%s' % random.choice(images), 'words' : ['aa', 'bb']} for x in range(random.randint(0, 1))]
 
 	def proc_json(self):
 		feed = urllib.urlopen(util.CONST.FEED_URL)
