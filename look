@@ -7,17 +7,12 @@ from pygame.locals import *
 import manager, collector, panel, util
 
 pm = manager.Manager()
-panel = panel.Panel()
-net = collector.Collector()
 
 def init():
 	glEnable(GL_TEXTURE_2D)
 	glEnable(GL_NORMALIZE)
-	#glEnable(GL_LIGHTING)
-	#glEnable(GL_LIGHT0)
 	glEnable(GL_TEXTURE_2D)
 	glEnable(GL_BLEND)
-	#glLightfv(GL_LIGHT0, GL_POSITION, (0.3, 0.4, 1.0, 0.0))
 	glShadeModel(GL_SMOOTH)
 	glClearColor(*util.CONST.BGCOLOR)
 	glClearDepth(1.0)
@@ -36,11 +31,9 @@ def proj3d():
 
 def proj2d():
 	width, height = util.CONST.VIZSIZE
-	#glViewport(0, 0, width, height)
 	glMatrixMode(GL_PROJECTION)
 	glLoadIdentity()
 	glOrtho(0, width, height, 0, -1, 1);
-	#gluPerspective(45, 1.0*width/height, 0.1, 500.0)
 	glMatrixMode(GL_MODELVIEW)
 	glLoadIdentity()
 
@@ -56,21 +49,20 @@ def main():
 			break
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		
-		dat = net.data()
-
 		proj3d()
-
 		# push away, and slowly rotate
 		glPushMatrix()
 		glTranslate(0.0, 0.0, prox)
 		glRotatef(-50.0, 1.0, 0.0, 0.0)
 		glRotatef(zrot, 0.0, 0.0, 1.0)
 		glTranslate(-50.0, -50.0, -15.0)
-		pm.draw(dat)
+		# draw 3d
+		pm.draw(3)
 		glPopMatrix()
 
 		proj2d()
-		panel.draw(dat, pm.attention.screenpos)
+		# draw 2d
+		pm.draw(2)
 
 		pygame.display.flip()
 		if util.CONST.SAVE_FRAMES:

@@ -90,7 +90,8 @@ class Attention:
 		self.ptct = len(self.pts)-1
 
 class Bit:
-	def __init__(self, imgstring):
+	def __init__(self, netdata):
+		self.netdat = netdata
 		self.pos = util.CONST.CENTER
 		self.vec = [random.uniform(*util.CONST.BIT_TRAJ_VEC_RANGE) for x in range(3)]
 		self.deg = 0.0
@@ -100,7 +101,7 @@ class Bit:
 		self.stuckct = util.CONST.BIT_STUCK_LIMIT
 		self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
 		# make image object with enough padding to get powers of 2 dimensions
-		netimg = Image.open(imgstring)
+		netimg = Image.open(netdata['img'])
 		imgsize = (util.pow2(netimg.size[0]), util.pow2(netimg.size[1]))
 		self.panelsize = (netimg.size[0], netimg.size[1])
 		self.proportionalsize = (self.panelsize[0]/(imgsize[0]*1.0), self.panelsize[1]/(imgsize[1]*1.0))
