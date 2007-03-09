@@ -49,7 +49,7 @@ def main():
 	pygame.init()
 	surface = pygame.display.set_mode(util.CONST.VIZSIZE, video_flags)
 	init()
-	count, zrot, proxdir, prox = (0, 0.0, -1, -20)
+	count, zrot, proxdir, prox = (0, 0.0, 1, -60)
 	while 1:
 		event = pygame.event.poll()
 		if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):

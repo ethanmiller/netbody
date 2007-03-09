@@ -12,8 +12,6 @@ class Attention:
 
 	def draw(self):
 		glColor3f(*util.CONST.ATTCOLOR)
-		#glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, (1.0, 0.0, 0.0, 1.0))
-		#glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, (0.0, 0.0, 0.0, 0.0))
 		glBlendFunc(GL_ONE, GL_ZERO)
 		glPushMatrix()
 		glTranslate(*self.pos)
@@ -22,7 +20,6 @@ class Attention:
 		glEnd()
 		glPopMatrix()
 		self.set_screen_pos()
-		#print self.pos, self.dest
 		if self.pos == self.dest:
 			self.indx += 1
 			if self.indx > self.ptct:
@@ -102,16 +99,14 @@ class Bit:
 		self.stuck = False
 		self.stuckct = util.CONST.BIT_STUCK_LIMIT
 		self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
-		self.simg = imgstring
 		# make image object with enough padding to get powers of 2 dimensions
 		netimg = Image.open(imgstring)
 		imgsize = (util.pow2(netimg.size[0]), util.pow2(netimg.size[1]))
 		self.panelsize = (netimg.size[0], netimg.size[1])
+		self.proportionalsize = (self.panelsize[0]/(imgsize[0]*1.0), self.panelsize[1]/(imgsize[1]*1.0))
 		self.oimg = Image.new('RGB', imgsize, (0, 0, 0))
 		self.oimg.paste(netimg, (0, 0))
-		self.texture = 0
-
-	def set_texture(self):
+		self.texture = glGenTextures(1)
 		glBindTexture(GL_TEXTURE_2D, self.texture)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.oimg.size[0], self.oimg.size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, self.oimg.tostring())
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
@@ -120,9 +115,6 @@ class Bit:
 	def draw(self, atat):
 		# atat = where attention is currently at
 		glColor4f(1.0, 1.0, 1.0, self.alpha)
-		#glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, (0.0, 1.0, 0.0, self.alpha))
-		#glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (0.0, 0.0, 0.0, 0.0))
-		#glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, (0.0, 0.0, 0.0, 0.0))
 		if self.stuck:
 			glBlendFunc(GL_ONE, GL_ZERO)
 		else:
@@ -130,12 +122,12 @@ class Bit:
 		glPushMatrix()
 		glTranslate(*self.pos)
 		glRotate(self.deg, *self.rotvec)
-		self.set_texture()
+		glBindTexture(GL_TEXTURE_2D, self.texture)
 		glBegin(GL_QUADS)
 		glTexCoord2f(0.0, 0.0); glVertex3f(0.0, 0.0, 0.0)
-		glTexCoord2f(1.0, 0.0); glVertex3f(self.panelsize[0]/100, 0.0, 0.0)
-		glTexCoord2f(1.0, 1.0); glVertex3f(self.panelsize[0]/100, self.panelsize[1]/100, 0.0)
-		glTexCoord2f(0.0, 1.0); glVertex3f(0.0 , self.panelsize[1]/100, 0.0)
+		glTexCoord2f(self.proportionalsize[0], 0.0); glVertex3f(self.panelsize[0]/100, 0.0, 0.0)
+		glTexCoord2f(self.proportionalsize[0], self.proportionalsize[1]); glVertex3f(self.panelsize[0]/100, self.panelsize[1]/100, 0.0)
+		glTexCoord2f(0.0, self.proportionalsize[1]); glVertex3f(0.0 , self.panelsize[1]/100, 0.0)
 		glEnd()
 		glPopMatrix()
 
@@ -148,11 +140,8 @@ class Bit:
 				self.stuck = False
 				self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
 			return
-		#diff = [x[1]-x[0] for x in zip(self.pos, atat)]
-		#dist = math.sqrt(reduce(lambda x, y: x+y, [z*z for z in diff]))
 		dist = util.distance(self.pos, atat)
 		if dist < 1.0:
-			#print 'ehh stuck'
 			self.stuck = True
 			self.alpha = 1.0
 			return
