@@ -102,6 +102,7 @@ class Bit:
 		self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
 		# make image object with enough padding to get powers of 2 dimensions
 		netimg = Image.open(netdata['img'])
+		netimg.thumbnail((50, 50))
 		imgsize = (util.pow2(netimg.size[0]), util.pow2(netimg.size[1]))
 		self.panelsize = (netimg.size[0], netimg.size[1])
 		self.proportionalsize = (self.panelsize[0]/(imgsize[0]*1.0), self.panelsize[1]/(imgsize[1]*1.0))
@@ -126,9 +127,9 @@ class Bit:
 		glBindTexture(GL_TEXTURE_2D, self.texture)
 		glBegin(GL_QUADS)
 		glTexCoord2f(0.0, 0.0); glVertex3f(0.0, 0.0, 0.0)
-		glTexCoord2f(self.proportionalsize[0], 0.0); glVertex3f(self.panelsize[0]/100, 0.0, 0.0)
-		glTexCoord2f(self.proportionalsize[0], self.proportionalsize[1]); glVertex3f(self.panelsize[0]/100, self.panelsize[1]/100, 0.0)
-		glTexCoord2f(0.0, self.proportionalsize[1]); glVertex3f(0.0 , self.panelsize[1]/100, 0.0)
+		glTexCoord2f(self.proportionalsize[0], 0.0); glVertex3f(self.panelsize[0]/15, 0.0, 0.0)
+		glTexCoord2f(self.proportionalsize[0], self.proportionalsize[1]); glVertex3f(self.panelsize[0]/15, self.panelsize[1]/15, 0.0)
+		glTexCoord2f(0.0, self.proportionalsize[1]); glVertex3f(0.0 , self.panelsize[1]/15, 0.0)
 		glEnd()
 		glPopMatrix()
 
