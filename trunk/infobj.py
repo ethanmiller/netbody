@@ -11,6 +11,7 @@ class Attention:
 		self.inc = [(x[1] - x[0])/util.CONST.ATT_ANI_STEPS for x in zip(self.pos, self.dest)]
 
 	def draw(self):
+		glDisable(GL_TEXTURE_2D)
 		glColor3f(*util.CONST.ATTCOLOR)
 		glBlendFunc(GL_ONE, GL_ZERO)
 		glPushMatrix()
@@ -28,6 +29,7 @@ class Attention:
 			self.inc = [(x[1] - x[0])/util.CONST.ATT_ANI_STEPS for x in zip(self.pos, self.dest)]
 		self.pos = [x[0] + x[1] for x in zip(self.pos, self.inc)]
 		#self.draw_dots()
+		glEnable(GL_TEXTURE_2D)
 		return self.pos
 
 	def set_screen_pos(self):
@@ -102,9 +104,9 @@ class Bit:
 		self.alpha = util.CONST.BIT_UNSTUCK_ALPHA
 		# make image object with enough padding to get powers of 2 dimensions
 		netimg = Image.open(netdata['img'])
-		netimg.thumbnail((50, 50))
+		netimg = util.sizeimg(netimg)
 		# netdat currently looks like:
-		# {'img' : '/path/to/image', 'words' : ['word1', 'word2']}
+		# {'imgid' : n, 'img' : '/path/to/image', 'words' : ['word1', 'word2']}
 		# replace image path with image object
 		self.netdat['img'] = netimg
 		imgsize = (util.pow2(netimg.size[0]), util.pow2(netimg.size[1]))

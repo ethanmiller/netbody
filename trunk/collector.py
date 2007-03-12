@@ -1,5 +1,5 @@
 import util
-import random, simplejson, urllib, re, os, time
+import random, simplejson, urllib, re, os, time, socket
 from pysqlite2 import dbapi2 as sqlite
 
 class Collector:
@@ -68,15 +68,20 @@ class Collector:
 		return imgs
 
 	def proc_json(self):
-		feed = urllib.urlopen(util.CONST.FEED_URL)
-		jobj = simplejson.loads(feed.read())
-		for entry in jobj['value']['items']:
-			if entry['title'] == util.CONST.TITLE_FLICKR_RECENT:
-				self.storedata(*self.proc_flickr(entry))
-			elif entry['title'] == util.CONST.TITLE_NEWS_TOP:
-				self.storedata(*self.proc_news_top(entry))
-			elif entry['title'] == util.CONST.TITLE_NEWS_PHOTOS:
-				self.storedata(*self.proc_news_photos(entry))
+		socket.setdefaulttimeout(util.CONST.FEED_TIMEOUT)
+		try:
+			feed = urllib.urlopen(util.CONST.FEED_URL)
+			jobj = simplejson.loads(feed.read())
+			socket.setdefaulttimeout(util.CONST.IMG_TIMEOUT)
+			for entry in jobj['value']['items']:
+				if entry['title'] == util.CONST.TITLE_FLICKR_RECENT:
+					self.storedata(*self.proc_flickr(entry))
+				elif entry['title'] == util.CONST.TITLE_NEWS_TOP:
+					self.storedata(*self.proc_news_top(entry))
+				elif entry['title'] == util.CONST.TITLE_NEWS_PHOTOS:
+					self.storedata(*self.proc_news_photos(entry))
+		except IOError:
+			print "-- feed took longer than %s seconds --" % util.CONST.FEED_TIMEOUT
 		#self.print_tables('images')
 		#self.print_tables('wordimage')
 
@@ -110,17 +115,21 @@ class Collector:
 				print "{{{ALREADY}} got %s --------------------" % fname
 				# already got this image
 				continue
-			cur.execute("INSERT INTO images (path, used) VALUES ('%s', 0);" % fname)
 			# actually get the image...
-			urllib.urlretrieve(i, fname)
-			print 'got %s' % fname
-			# now create many-to-many record
-			cur.execute("SELECT * FROM images WHERE path='%s';" % fname)
-			row = cur.fetchone()
-			sql = ''
-			for wid, w in words_by_id.iteritems():
-				sql += "INSERT INTO wordimage (wordid, imageid) VALUES (%s, %s);" % (wid, row['id'])
-			cur.executescript(sql)
+			print 'downloading %s' % i
+			try:
+				stream = urllib.urlretrieve(i, fname)
+				print "got it!"
+				cur.execute("INSERT INTO images (path, used) VALUES ('%s', 0);" % fname)
+				# now create many-to-many record
+				cur.execute("SELECT * FROM images WHERE path='%s';" % fname)
+				row = cur.fetchone()
+				sql = ''
+				for wid, w in words_by_id.iteritems():
+					sql += "INSERT INTO wordimage (wordid, imageid) VALUES (%s, %s);" % (wid, row['id'])
+				cur.executescript(sql)
+			except IOError:
+				print "failed..."
 		#finished......
 		cur.close()
 		conn.close()
