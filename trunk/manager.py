@@ -17,9 +17,13 @@ class Manager:
 			self.draw3d()
 
 	def draw3d(self):
-		attention_at = self.attention.draw()
+		attention_at = self.attention.draw() # the red square
 		for d in self.net.data():
-			self.bits.append(infobj.Bit(d))
+			# 0 or more images to add from the network
+			try:
+				self.bits.append(infobj.Bit(d))
+			except IOError:
+				print "no file! %s" % str(d)
 		self.paneldat = [] # clear out paneldat to repopulate
 		kill_list = [] # bits that have floated too far away
 		sort_up_list = [] # bits that are now opaque, and should be drawn first
