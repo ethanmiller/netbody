@@ -15,17 +15,20 @@ class CONST:
 	TITLE_FLICKR_RECENT = 'flickr_recent'
 	TITLE_NEWS_TOP = 'news_top'
 	TITLE_NEWS_PHOTOS = 'news_photos'
+	DB_LOC = 'resources/netbodydb'
+	COLLECTION_PAUSE = 120 # in seconds
+	IMG_PER_FRAME_RANGE = (0, 3)
 	# image/text object constants
 	#BIT_DRIFT_LIMIT = 10 # [[[testing value]]]
 	BIT_DRIFT_LIMIT = 120 
-	BIT_TRAJ_VEC_RANGE = (-0.05, 0.05) # [[[testing value]]]
-	#BIT_TRAJ_VEC_RANGE = (-0.03, 0.03)
+	#BIT_TRAJ_VEC_RANGE = (-0.05, 0.05) # [[[testing value]]]
+	BIT_TRAJ_VEC_RANGE = (-0.005, 0.005)
 	BIT_STUCK_LIMIT = 50000
 	BIT_UNSTUCK_ALPHA = 0.2
 	BIT_ROT_INC_RANGE = (1.0, 2.0)
 	# "attention" block constants
 	ATT_ANI_STEPS = 16.0
-	ATT_POS_INDX_START = 4950
+	ATT_POS_INDX_START = 4750
 	ATTCOLOR = (1.0, 0.0, 0.0)
 
 def distance(pta, ptb):

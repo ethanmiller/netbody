@@ -103,6 +103,10 @@ class Bit:
 		# make image object with enough padding to get powers of 2 dimensions
 		netimg = Image.open(netdata['img'])
 		netimg.thumbnail((50, 50))
+		# netdat currently looks like:
+		# {'img' : '/path/to/image', 'words' : ['word1', 'word2']}
+		# replace image path with image object
+		self.netdat['img'] = netimg
 		imgsize = (util.pow2(netimg.size[0]), util.pow2(netimg.size[1]))
 		self.panelsize = (netimg.size[0], netimg.size[1])
 		self.proportionalsize = (self.panelsize[0]/(imgsize[0]*1.0), self.panelsize[1]/(imgsize[1]*1.0))
