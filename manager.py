@@ -7,6 +7,7 @@ class Manager:
 		self.paneldat = []
 		self.bits = []
 		self.attention = infobj.Attention()
+		util.log('INIT')
 	
 	def draw(self, mode):	
 		if mode == 2:
@@ -15,6 +16,7 @@ class Manager:
 			self.panel.draw(self.paneldat, self.attention.screenpos)
 		elif mode == 3:
 			self.draw3d()
+		util.log('ENDFRAME')
 
 	def draw3d(self):
 		attention_at = self.attention.draw() # the red square
@@ -22,6 +24,7 @@ class Manager:
 			# 0 or more images to add from the network
 			try:
 				self.bits.append(infobj.Bit(d))
+				util.log('BITADD %s' % d['imgid'])
 			except IOError:
 				print "no file! %s" % str(d)
 		self.paneldat = [] # clear out paneldat to repopulate
@@ -36,11 +39,13 @@ class Manager:
 			if not b.stuck and not past_unstuck:
 				past_unstuck = True
 			if b.stuck:
+				util.log('STUCKBIT %s' % b.netdat['imgid'])
 				self.paneldat.append(b.netdat)
 				if past_unstuck:
 					sort_up_list.append(i)
 				
 		for k in kill_list:
+			util.log('KILLBIT %s' % self.bits[k].netdat['imgid'])
 			del(self.bits[k])
 		for s in sort_up_list:
 			try:

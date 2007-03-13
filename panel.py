@@ -3,17 +3,16 @@ import util, time, Image, ImageDraw, ImageFont, math
 
 class Panel:
 	def __init__(self):
-		self.font = ImageFont.truetype('resources/NewMedia.ttf', 16)
-		self.imgtex = glGenTextures(1)
+		self.font = ImageFont.truetype('resources/FreeSans.ttf', 16)
+		self.textures = glGenTextures(2)
 		self.imgids = []
 		self.imgrealheight = 0
 		self.imgpanelsize = [util.pow2(util.CONST.IPANEL_WIDTH), util.pow2(util.CONST.VIZSIZE[1])]
 		self.imgpanel = Image.new('RGB', (self.imgpanelsize[0], self.imgpanelsize[1]), util.CONST.PANEL_BG)
-		self.imgoffset = 0
+		self.imgoffset = 0.0
 		self.retexture = True
 		self.wordrealsize = 0
 		self.wordpanelsize = [util.pow2(util.CONST.VIZSIZE[0]), util.pow2(util.CONST.WPANEL_HEIGHT)]
-		self.wordtex = glGenTextures(1)
 		self.wordpanel = Image.new('RGB', (self.wordpanelsize[0], self.wordpanelsize[1]), util.CONST.PANEL_BG)
 		self.wordoffset = 0
 
@@ -26,7 +25,7 @@ class Panel:
 		self.draw_words()
 
 	def draw_images(self):
-		glBindTexture(GL_TEXTURE_2D, self.imgtex)
+		glBindTexture(GL_TEXTURE_2D, self.textures[0])
 		if self.retexture:
 			strrep = self.imgpanel.tostring()
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.imgpanel.size[0], self.imgpanel.size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, strrep)
@@ -39,12 +38,17 @@ class Panel:
 		glColor4f(1.0, 1.0, 1.0, 1.0)
 		glBegin(GL_QUADS)
 		glTexCoord2f(0.0, propytop)
+		##print (0.0, propytop)
 		glVertex2f(util.CONST.IPANEL_PADDING, util.CONST.IPANEL_PADDING)
 		glTexCoord2f(util.CONST.IPANEL_WIDTH/(self.imgpanel.size[0]*1.0), propytop)
+		#print (util.CONST.IPANEL_WIDTH/(self.imgpanel.size[0]*1.0), propytop)
 		glVertex2f(util.CONST.IPANEL_WIDTH + util.CONST.IPANEL_PADDING, util.CONST.IPANEL_PADDING)
 		glTexCoord2f(util.CONST.IPANEL_WIDTH/(self.imgpanel.size[0]*1.0), (panelheight+self.imgoffset*1.0)/self.imgpanel.size[1])
+		#print (util.CONST.IPANEL_WIDTH/(self.imgpanel.size[0]*1.0), (panelheight+self.imgoffset*1.0)/self.imgpanel.size[1])
 		glVertex2f(util.CONST.IPANEL_WIDTH + util.CONST.IPANEL_PADDING, panelheight)
 		glTexCoord2f(0.0, (panelheight+self.imgoffset*1.0)/self.imgpanel.size[1])
+		#print (0.0, (panelheight+self.imgoffset*1.0)/self.imgpanel.size[1])
+		#print '\n'
 		glVertex2f(util.CONST.IPANEL_PADDING,  panelheight)
 		glEnd()
 		if self.imgoffset > 0:
@@ -57,7 +61,7 @@ class Panel:
 				self.imgoffset -= self.imgoffset/6.0
 
 	def draw_words(self):
-		glBindTexture(GL_TEXTURE_2D, self.wordtex)
+		glBindTexture(GL_TEXTURE_2D, self.textures[1])
 		if self.retexture:
 			strrep = self.wordpanel.tostring()
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.wordpanel.size[0], self.wordpanel.size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, strrep)
@@ -89,6 +93,9 @@ class Panel:
 				self.wordoffset -= self.wordoffset/6.0
 
 	def addimagewords(self, d):
+		# reset textures??
+		glDeleteTextures(self.textures)
+		self.textures = glGenTextures(2)
 		# --------- image ----------------
 		self.imgrealheight += d['img'].size[1]
 		self.imgpanelsize[1] = util.pow2(self.imgrealheight)
@@ -103,7 +110,7 @@ class Panel:
 		tmppanel.paste(d['img'], (0,0))
 		tmppanel.paste(self.imgpanel, (0, d['img'].size[1]))
 		self.imgpanel = tmppanel
-		self.imgoffset += d['img'].size[1]
+		self.imgoffset += d['img'].size[1]*1.0
 		# ----------- words -------------
 		wordimgs = []
 		tmppanel = Image.new('RGB', (8, 8), (0.0, 0.0, 0.0)) # using this just to get textsize
