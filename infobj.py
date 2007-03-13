@@ -95,7 +95,7 @@ class Bit:
 	def __init__(self, netdata):
 		self.netdat = netdata
 		self.pos = util.CONST.CENTER
-		self.vec = [random.uniform(*util.CONST.BIT_TRAJ_VEC_RANGE) for x in range(3)]
+		self.vec = [random.uniform(*util.CONST.BIT_SPEED_RANGE) for x in range(3)]
 		self.deg = 0.0
 		self.rotinc = random.uniform(*util.CONST.BIT_ROT_INC_RANGE)
 		self.rotvec = [random.random() for x in range(3)]

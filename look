@@ -4,7 +4,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import gluPerspective
 import pygame, Image
 from pygame.locals import *
-import manager, collector, panel, util
+import manager, collector, panel, util, time
 
 pm = manager.Manager()
 
@@ -74,6 +74,8 @@ def main():
 		zrot += util.CONST.ROTATE_RATE
 		if zrot > 360:
 			zrot %= 360
+		# pause
+		time.sleep(util.CONST.FRAME_PAUSE)
 
 def saveFrame(filename, format="PNG" ):
 	"""Save current buffer to filename in format"""

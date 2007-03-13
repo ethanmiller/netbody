@@ -1,4 +1,4 @@
-import math
+import math, Image
 
 class CONST:
 	SAVE_FRAMES = False
@@ -8,9 +8,13 @@ class CONST:
 	CENTER = (50.0, 50.0, 23.0)
 	ROTATE_RATE = 0.025
 	PROXIMITY_RANGE = (-60, -20)
-	PANEL_WIDTH = 50
-	PANEL_PADDING = 5
-	PANEL_BG = (0.6, 0.6, 0.55, 1.0)
+	FRAME_PAUSE = 0.001
+	IPANEL_WIDTH = 50
+	IPANEL_PADDING = 5
+	WPANEL_HEIGHT = 25
+	WPANEL_PADDING = 5
+	PANEL_BG = (219, 219, 208, 1.0)
+	WORD_PADDING = 5.0
 	# ---------- data collection const - these pased on the yahoo pipes feed I created...
 	FEED_URL = 'http://pipes.yahoo.com/pipes/eBEyVbXK2xGId7CoE2_cUw/run?_render=json'
 	FEED_TIMEOUT = 20.0
@@ -22,17 +26,15 @@ class CONST:
 	IMG_PER_FRAME_RANGE = (0, 3)
 	IMG_TIMEOUT = 8.0
 	# ---------- image/text object constants
-	#BIT_DRIFT_LIMIT = 10 # [[[testing value]]]
 	BIT_DRIFT_LIMIT = 120 
-	#BIT_TRAJ_VEC_RANGE = (-0.05, 0.05) # [[[testing value]]]
-	BIT_TRAJ_VEC_RANGE = (-0.005, 0.005)
+	BIT_SPEED_RANGE = (-0.004, 0.004)
 	BIT_STUCK_LIMIT = 50000
 	BIT_UNSTUCK_ALPHA = 0.2
 	BIT_ROT_INC_RANGE = (1.0, 2.0)
 	THUMBSIZE = (50, 50)
 	# ---------- "attention" block constants
 	ATT_ANI_STEPS = 16.0
-	ATT_POS_INDX_START = 4850
+	ATT_POS_INDX_START = 4950
 	ATTCOLOR = (1.0, 0.0, 0.0)
 
 def distance(pta, ptb):
@@ -52,9 +54,9 @@ def pow2(n):
 
 def sizeimg(im):
 	if im.size[0] >= im.size[1]:
-		im.thumbnail(CONST.THUMBSIZE)
+		im.thumbnail(CONST.THUMBSIZE, Image.ANTIALIAS)
 		return im
 	else:
 		fac = (CONST.THUMBSIZE[0]*1.0)/im.size[0]
 		ysize = int((im.size[1]*1.0)*fac)
-		return im.resize((CONST.THUMBSIZE[0], ysize))
+		return im.resize((CONST.THUMBSIZE[0], ysize), Image.ANTIALIAS)
