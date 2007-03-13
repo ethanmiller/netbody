@@ -23,6 +23,7 @@ class Attention:
 		self.set_screen_pos()
 		if self.pos == self.dest:
 			self.indx += 1
+			util.log('ATTENTIONAT %s' % self.indx)
 			if self.indx > self.ptct:
 				self.indx %= self.ptct
 			self.dest = self.pts[self.indx]

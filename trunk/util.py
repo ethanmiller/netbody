@@ -8,7 +8,7 @@ class CONST:
 	CENTER = (50.0, 50.0, 23.0)
 	ROTATE_RATE = 0.025
 	PROXIMITY_RANGE = (-60, -20)
-	FRAME_PAUSE = 0.001
+	FRAME_PAUSE = 0.1
 	IPANEL_WIDTH = 50
 	IPANEL_PADDING = 5
 	WPANEL_HEIGHT = 25
@@ -34,7 +34,7 @@ class CONST:
 	THUMBSIZE = (50, 50)
 	# ---------- "attention" block constants
 	ATT_ANI_STEPS = 16.0
-	ATT_POS_INDX_START = 4950
+	ATT_POS_INDX_START = 4850
 	ATTCOLOR = (1.0, 0.0, 0.0)
 
 def distance(pta, ptb):
@@ -60,3 +60,18 @@ def sizeimg(im):
 		fac = (CONST.THUMBSIZE[0]*1.0)/im.size[0]
 		ysize = int((im.size[1]*1.0)*fac)
 		return im.resize((CONST.THUMBSIZE[0], ysize), Image.ANTIALIAS)
+
+def log(msg):
+	if msg == 'INIT':
+		f = open('resources/score.txt', 'w')
+		f.write('__NETBODY SCORE__\n')
+		f.close()
+		return
+	f = open('resources/score.txt', 'a')
+	if msg == 'ENDFRAME':
+		f.write('\n%s\n' % ('-' * 32))
+		f.close()
+		return
+	f.write("%s | " % msg)
+	f.close()
+	
