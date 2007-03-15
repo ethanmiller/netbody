@@ -27,7 +27,6 @@ class Manager:
 			try:
 				self.bits.append(infobj.Bit(d))
 				util.log('BITADD %s' % d['imgid'])
-				print "birthing %s" % d['imgid']
 			except IOError:
 				print "no file! %s" % str(d)
 		self.paneldat = [] # clear out paneldat to repopulate
@@ -52,7 +51,6 @@ class Manager:
 				
 		for k in kill_list:
 			util.log('KILLBIT %s' % self.bits[k].netdat['imgid'])
-			print "killing %s" % self.bits[k].netdat['imgid']
 			self.net.resurrect(self.bits[k].netdat['imgid'])
 			del(self.bits[k])
 		for s in sort_up_list:
