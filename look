@@ -65,7 +65,7 @@ def main():
 
 		pygame.display.flip()
 		if util.CONST.SAVE_FRAMES:
-			saveFrame("output/frame%05d.png" % count)
+			saveFrame("output/frame%06d.png" % count)
 		count += 1
 		#prox += proxdir/32.0
 		#if prox <= util.CONST.PROXIMITY_RANGE[0] or prox >= util.CONST.PROXIMITY_RANGE[1]:
