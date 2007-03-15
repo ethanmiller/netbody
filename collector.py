@@ -40,7 +40,7 @@ class Collector:
 
 	def resurrect(self, id):
 		conn = sqlite.connect(util.CONST.DB_LOC, isolation_level=None)
-		cur.execute("SELECT * FROM images WHERE used=0 ORDER BY date ASC LIMIT %s;" % retcount)
+		cur = conn.cursor()
 		cur.execute("UPDATE images SET used=0 WHERE id='%s';" % id)
 		cur.close()
 		conn.close()
