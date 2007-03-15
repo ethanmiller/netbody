@@ -7,6 +7,7 @@ class Manager:
 		self.paneldat = []
 		self.bits = []
 		self.attention = infobj.Attention()
+		self.stucklist = []
 		util.log('INIT')
 	
 	def draw(self, mode):	
@@ -14,9 +15,10 @@ class Manager:
 			# 2d rendering - this always happens after 3d rendering
 			# and so self.paneldat contains data from that previous rendering
 			self.panel.draw(self.paneldat, self.attention.screenpos)
+			# this is the last draw call, so...
+			util.log('ENDFRAME')
 		elif mode == 3:
 			self.draw3d()
-		util.log('ENDFRAME')
 
 	def draw3d(self):
 		attention_at = self.attention.draw() # the red square
@@ -25,6 +27,7 @@ class Manager:
 			try:
 				self.bits.append(infobj.Bit(d))
 				util.log('BITADD %s' % d['imgid'])
+				print "birthing %s" % d['imgid']
 			except IOError:
 				print "no file! %s" % str(d)
 		self.paneldat = [] # clear out paneldat to repopulate
@@ -39,13 +42,18 @@ class Manager:
 			if not b.stuck and not past_unstuck:
 				past_unstuck = True
 			if b.stuck:
-				util.log('STUCKBIT %s' % b.netdat['imgid'])
 				self.paneldat.append(b.netdat)
+				# this stucklist is just for keepint the log file lightweight
+				if b.netdat['imgid'] not in self.stucklist:
+					util.log('STUCKBIT %s' % b.netdat['imgid'])
+					self.stucklist.append(b.netdat['imgid'])
 				if past_unstuck:
 					sort_up_list.append(i)
 				
 		for k in kill_list:
 			util.log('KILLBIT %s' % self.bits[k].netdat['imgid'])
+			print "killing %s" % self.bits[k].netdat['imgid']
+			self.net.resurrect(self.bits[k].netdat['imgid'])
 			del(self.bits[k])
 		for s in sort_up_list:
 			try:

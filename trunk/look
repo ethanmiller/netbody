@@ -13,10 +13,9 @@ def init():
 	glEnable(GL_NORMALIZE)
 	glEnable(GL_TEXTURE_2D)
 	glEnable(GL_BLEND)
-	glShadeModel(GL_SMOOTH)
+	glEnable(GL_DEPTH_TEST)
 	glClearColor(*util.CONST.BGCOLOR)
 	glClearDepth(1.0)
-	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
 

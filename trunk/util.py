@@ -1,14 +1,14 @@
 import math, Image
 
 class CONST:
-	SAVE_FRAMES = False
+	SAVE_FRAMES = True
 	# ---------- general visualization constants
 	VIZSIZE = (800, 450)	
 	BGCOLOR = (0.9, 0.9, 0.85, 0.0)
 	CENTER = (50.0, 50.0, 23.0)
 	ROTATE_RATE = 0.025
 	PROXIMITY_RANGE = (-60, -20)
-	FRAME_PAUSE = 0.1
+	FRAME_PAUSE = 0.001
 	IPANEL_WIDTH = 50
 	IPANEL_PADDING = 5
 	WPANEL_HEIGHT = 25
@@ -26,7 +26,7 @@ class CONST:
 	IMG_PER_FRAME_RANGE = (0, 3)
 	IMG_TIMEOUT = 8.0
 	# ---------- image/text object constants
-	BIT_DRIFT_LIMIT = 120 
+	BIT_DRIFT_LIMIT = 55
 	BIT_SPEED_RANGE = (-0.004, 0.004)
 	BIT_STUCK_LIMIT = 50000
 	BIT_UNSTUCK_ALPHA = 0.2
@@ -34,7 +34,7 @@ class CONST:
 	THUMBSIZE = (50, 50)
 	# ---------- "attention" block constants
 	ATT_ANI_STEPS = 16.0
-	ATT_POS_INDX_START = 4850
+	ATT_POS_INDX_START = 4650
 	ATTCOLOR = (1.0, 0.0, 0.0)
 
 def distance(pta, ptb):
@@ -64,14 +64,14 @@ def sizeimg(im):
 def log(msg):
 	if msg == 'INIT':
 		f = open('resources/score.txt', 'w')
-		f.write('__NETBODY SCORE__\n')
+		f.write('')
 		f.close()
 		return
 	f = open('resources/score.txt', 'a')
 	if msg == 'ENDFRAME':
-		f.write('\n%s\n' % ('-' * 32))
+		f.write('\n')
 		f.close()
 		return
-	f.write("%s | " % msg)
+	f.write("%s|" % msg)
 	f.close()
 	
