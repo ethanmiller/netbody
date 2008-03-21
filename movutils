@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ "${1}" = "makemov" ]
+then
+	 ffmpeg -i output/frame%05d.png output.avi
+elif [ "${1}" = "delmov" ]
+then
+	echo "del"
+else	
+	echo "makemov or delmov"
+fi
