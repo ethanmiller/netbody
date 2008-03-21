@@ -1,7 +1,10 @@
 import math, Image
 
 class CONST:
-	SAVE_FRAMES = True
+	SAVE_FRAMES = False
+	WIN_WIDTH = 20
+	WIN_HEIGHT = 20
+	
 
 def sizeimg(im):
 	if im.size[0] >= im.size[1]:

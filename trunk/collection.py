@@ -1,15 +1,28 @@
 import util, apis.flickr, apis.delic, apis.technorati
+import random
+
 entities = []
+seed = None
 
 class Entity:
 	def __init__(self, *args, **kwargs):
 		for k,v in kwargs.iteritems():
 			setattr(self, k, v)
 		self.active = False
+		self.tmp_draw_ct = 50 # time it will take to render this entity
 
 	def spider(self):
 		"""spider is always overidden"""
-		return []
+		raise RuntimeError, "Must override base Entity spider()"
+
+	def draw(self):
+		if self.active:
+			if self.tmp_draw_ct == 0:
+				# done drawing
+				self.active = False
+				self.tmp_draw_ct = 50
+			else:
+				self.tmp_draw_ct = self.tmp_draw_ct - 1
 
 class Image(Entity):
 	def __init__(self, *args, **kwargs):
@@ -29,6 +42,7 @@ class Tag(Entity):
 			ret.append(Link(url=url['link'], title=url['title']))
 		for blog in apis.technorati.by_tag(self.tag):
 			ret.append(BlogPost(blog_link=blog['link'], title=blog['title']))
+		print "tag spiders %s others", len(ret)
 		return ret
 		
 
@@ -46,16 +60,24 @@ class Link(Entity):
 		Entity.__init__(self, **kwargs)
 		self.id = kwargs['url']
 
-def spider(entity=None):
-	global entities
-	if not entity: 
+def spider():
+	global entities, seed
+	if not seed: 
 		if len(entities) > 0 : raise RuntimeError, "spider without argument only to initialize"
 		entity = Tag(tag='identity')
 		entity.index = 0
 		entities.append(entity)
-	for e in entity.spider():
+	else:
+		entity = seed
+	entity.active = True
+	network = entity.spider()
+	rchoice = random.randrange(len(network))
+	for i, e in enumerate(entity.spider()):
 		e = get_or_add(e)
 		e.active = True
+		if rchoice == i : 
+			seed = e # choose a seed for next spider
+			print "seed id = %s" % e.id
 
 def get_or_add(entity):
 	"""if the entity is in the collection already, return the collected one. Otherwise add it to collection"""
