@@ -23,6 +23,7 @@ class Manager:
 
 				if not has_active:
 					# active nodes have finished drawing, spider again with seed
+					print "|no active nodes found, spidering ... |"
 					collection.spider()
 
 				if util.CONST.SAVE_FRAMES:
