@@ -2,6 +2,7 @@ import math, Image
 
 class CONST:
 	SAVE_FRAMES = False
+	SERVICE_HIT_PAUSE = 5 # how many seconds to pause between hitting apis/feeds
 	WIN_WIDTH = 20
 	WIN_HEIGHT = 20
 	
