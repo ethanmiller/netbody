@@ -1,17 +1,37 @@
-import feedparser
+import feedparser, util
 
 mark = 0
 
 def by_tag(t):
-	pause()
+	global mark
+	mark = util.pause("del.icio.us", mark)
 	fobj = feedparser.parse("http://del.icio.us/rss/popular/%s" % t)
 	# keys in entries: ['updated', 'updated_parsed', 'links', 'author', 'title', 'title_detail', 'link', 'id', 'tags']
 	return fobj['entries']
 
 def url_data(url):
-	pause()
+	global mark
+	mark = util.pause("del.icio.us", mark)
 	fobj = feedparser.parse(url_feed(url))
 	# username is entries['author'], for tags entries['tags'] =  [{'term': 'tag othertag', 'scheme': None, 'label': None}]
+	return fobj['entries']
+
+def social_network(uname):
+	global mark
+	mark = util.pause("del.icio.us", mark)
+	fobj = feedparser.parse("http://feeds.delicious.com/rss/network/%s" % uname)
+	# entries are from social network, but there may be multiple posts from same members of network
+	ret = []
+	for e in fobj['entries']:
+		a = e.get('author', None)
+		if a not in ret and a != None: ret.append(e['author'])
+	return ret
+
+def links(uname):
+	global mark
+	mark = util.pause("del.icio.us", mark)
+	fobj = feedparser.parse("http://feeds.delicious.com/rss/%s" % uname)
+	# keys in entries : ['summary_detail', 'rdf_bag', 'updated_parsed', 'links', 'title', 'author', 'rdf_li', 'updated', 'taxo_topics', 'summary', 'title_detail', 'link', 'id', 'tags']
 	return fobj['entries']
 
 def url_feed(url):
@@ -20,20 +40,3 @@ def url_feed(url):
 	m.update(url)
 	return "http://feeds.delicious.com/rss/url/%s" % m.hexdigest()
 
-def pause():
-	global mark
-	import time, util
-	elapsed = time.clock() - mark
-	if elapsed < util.CONST.SERVICE_HIT_PAUSE:
-		sleeptime = util.CONST.SERVICE_HIT_PAUSE - elapsed
-		print ".... pausing %s seconds for del.icio.us ...."
-		time.sleep(sleeptime)
-	mark = time.clock()
-
-#>>> import hashlib
-#>>> m = hashlib.md5()
-#>>> m.update("http://www.donotreply.com/")
-#>>> m.digest()
-#'gi\x10\xd4\x1a\x8e\xe5\xe0\x1b\x02\xe9E\xe02\xe9^'
-#>>> m.hexdigest()
-#'676910d41a8ee5e01b02e945e032e95e'
