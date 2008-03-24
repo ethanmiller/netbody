@@ -29,3 +29,12 @@ def log(msg):
 		return
 	f.write("%s|" % msg)
 	f.close()
+
+def pause(for_whom, mark):
+	import time
+	elapsed = time.clock() - mark
+	if elapsed < CONST.SERVICE_HIT_PAUSE:
+		sleeptime = CONST.SERVICE_HIT_PAUSE - elapsed
+		print ".... pausing %s seconds for %s ...." % (sleeptime, for_whom)
+		time.sleep(sleeptime)
+	return time.clock()

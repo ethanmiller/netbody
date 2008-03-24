@@ -32,7 +32,7 @@ class Entity:
 
 class Image(Entity):
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['img_link', 'username', 'title', 'tags'], **kwargs)
+		Entity.__init__(self, ['img_link', 'author_id', 'username', 'title', 'tags'], **kwargs)
 		self.id = kwargs['img_link']
 		# username attr came in the form "nobody@flickr.com (username)"
 		self.username = self.username.split('(')[1][:-1]
@@ -44,7 +44,7 @@ class Image(Entity):
 		ret = []
 		for t in self.tags:
 			ret.append(Tag(tag=t))
-		ret.append(UserName(username=self.username))
+		ret.append(UserName(username=self.username, flickr_id=self.author_id))
 		print "--- an Image (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
@@ -57,24 +57,53 @@ class Tag(Entity):
 	def spider(self):
 		ret = []
 		for im in apis.flickr.by_tag(self.tag):
-			ret.append(Image(img_link=im['link'], username=im['author'], title=im['title'], tags=im['tags']))
-		#for url in apis.delic.by_tag(self.tag):
-			#ret.append(Link(url=url['link'], title=url['title']))
-		#for blog in apis.technorati.by_tag(self.tag):
-			#ret.append(BlogPost(blog_link=blog['link'], title=blog['title']))
+			ret.append(Image(img_link=im['link'], username=im['author'], author_id=im['author_id'], title=im['title'], tags=im['tags']))
+		for url in apis.delic.by_tag(self.tag):
+			ret.append(Link(url=url['link'], title=url['title']))
+		for blog in apis.technorati.by_tag(self.tag):
+			ret.append(BlogPost(blog_link=blog['link'], title=blog['title'], summary=blog['summary']))
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
 		
 
 class BlogPost(Entity):
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['blog_link', 'title'], **kwargs)
+		Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
 		self.id = kwargs['blog_link']
+
+	def spider(self):
+		import apis.yahoo
+		ret = []
+		# summary gave us a little text description of the blog post...
+		# yahoo term extration gets 'keywords' out of that...
+		for term in apis.yahoo.termExtraction(self.summary):
+			ret.append(Tag(tag=term.replace(' ', '')))
+		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
+		return ret
 
 class UserName(Entity):
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['username'], **kwargs)
+		Entity.__init__(self, ['username', 'flickr_id'], **kwargs)
 		self.id = kwargs['username']
+
+	def spider(self):
+		ret = []
+		if self.flickr_id:
+			# spider flickr network
+			for u in apis.flickr.social_network(self.flickr_id):
+				ret.append(UserName(username=u['author'], flickr_id=u['author_id']))
+			# spider photos for user
+			for im in apis.flickr.user_images(self.flickr_id):
+				ret.append(Image(img_link=im['link'], username=im['author'], author_id=im['author_id'], title=im['title'], tags=im['tags']))
+		# try del.icio.us network regardless
+		for u in apis.delic.social_network(self.username):
+			# just returns a list of usernames
+			ret.append(UserName(username=u, flickr_id=None))
+		for l in apis.delic.links(self.username):
+			ret.append(Link(url=l['link'], title=l['title']))
+		# TODO more possibilities in this spider
+		print "--- a UserName (%s) spiders %s other entities..." % (self.username, len(ret))
+		return ret
 
 class Link(Entity):
 	def __init__(self, **kwargs):
@@ -87,7 +116,8 @@ class Link(Entity):
 			for tdict in dat['tags']:
 				for t in tdict['term'].split(' '):
 					ret.append(Tag(tag=t))
-			ret.append(UserName(username=dat['author']))
+			ret.append(UserName(username=dat['author'], flickr_id=None))
+		print "--- a Link (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
 def spider():
@@ -102,7 +132,7 @@ def spider():
 	entity.active = True
 	print '__main spider() call on entity id=%s [%s]__' % (entity.id, entity.__class__)
 	network = entity.spider() 
-	rchoice = 4 #random.randrange(len(network))
+	rchoice = random.randrange(len(network))
 	for i, e in enumerate(network):
 		e = get_or_add(e)
 		e.active = True
