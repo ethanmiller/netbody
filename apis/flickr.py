@@ -10,7 +10,7 @@ def by_tag(t):
 	global mark
 	mark = util.pause('flickr', mark)
 	# public feed
-	feed = urllib.urlopen("http://api.flickr.com/services/feeds/photos_public.gne?tags=%s&format=json&nojsoncallback=1" % t)
+	feed = urllib.urlopen(u"http://api.flickr.com/services/feeds/photos_public.gne?tags=%s&format=json&nojsoncallback=1" % unicode(t))
 	jobj = simplejson.load(feed)
 	# keys in items: ['description', 'date_taken', 'title', 'media', 'author', 'link', 'published', 'author_id', 'tags']
 	return jobj['items']
