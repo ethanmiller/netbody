@@ -3,6 +3,7 @@ import random
 
 entities = []
 seed = None
+pnetwork = None
 
 class Entity:
 	""" Base class for all entities in netbody visualization """
@@ -61,7 +62,7 @@ class Tag(Entity):
 		for url in apis.delic.by_tag(self.tag):
 			ret.append(Link(url=url['link'], title=url['title']))
 		for blog in apis.technorati.by_tag(self.tag):
-			ret.append(BlogPost(blog_link=blog['link'], title=blog['title'], summary=blog['summary']))
+			ret.append(BlogPost(blog_link=blog['link'], title=blog['title'], summary=blog.get('summary', '')))
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
 		
@@ -77,7 +78,8 @@ class BlogPost(Entity):
 		# summary gave us a little text description of the blog post...
 		# yahoo term extration gets 'keywords' out of that...
 		for term in apis.yahoo.termExtraction(self.summary):
-			ret.append(Tag(tag=term.replace(' ', '')))
+			for t in term.split(' '):
+				ret.append(Tag(tag=t))
 		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
@@ -95,6 +97,9 @@ class UserName(Entity):
 			# spider photos for user
 			for im in apis.flickr.user_images(self.flickr_id):
 				ret.append(Image(img_link=im['link'], username=im['author'], author_id=im['author_id'], title=im['title'], tags=im['tags']))
+		else:
+			pass
+			# TODO can use beautiful soup here to check for a flickr page with username, then parse page to find flickr_id (search form)
 		# try del.icio.us network regardless
 		for u in apis.delic.social_network(self.username):
 			# just returns a list of usernames
@@ -121,7 +126,7 @@ class Link(Entity):
 		return ret
 
 def spider():
-	global entities, seed
+	global entities, seed, pnetwork
 	if not seed: 
 		if len(entities) > 0 : raise RuntimeError, "spider without argument only to initialize"
 		entity = Tag(tag='identity')
@@ -130,9 +135,15 @@ def spider():
 	else:
 		entity = seed
 	entity.active = True
-	print '__main spider() call on entity id=%s [%s]__' % (entity.id, entity.__class__)
+	print '\n\n__main spider() call on entity id=%s [%s]__' % (entity.id, entity.__class__)
 	network = entity.spider() 
-	rchoice = random.randrange(len(network))
+	if len(network) > 0:
+		rchoice = random.randrange(len(network))
+		pnetwork = network # save this network in case we need to come back to it
+	else:
+		print "~~found 0 other entities, reverting to last set"
+		network = pnetwork # reuse the last set and hope we get unstuck
+		rchoice = random.randrange(len(network))
 	for i, e in enumerate(network):
 		e = get_or_add(e)
 		e.active = True

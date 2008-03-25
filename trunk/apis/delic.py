@@ -5,7 +5,7 @@ mark = 0
 def by_tag(t):
 	global mark
 	mark = util.pause("del.icio.us", mark)
-	fobj = feedparser.parse("http://del.icio.us/rss/popular/%s" % t)
+	fobj = feedparser.parse(u"http://del.icio.us/rss/popular/%s" % unicode(t))
 	# keys in entries: ['updated', 'updated_parsed', 'links', 'author', 'title', 'title_detail', 'link', 'id', 'tags']
 	return fobj['entries']
 

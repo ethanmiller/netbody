@@ -17,14 +17,14 @@ URI = URI + "/ContentAnalysisService/V1/termExtraction"
 APPID = "kQqLnvnV34Gkbc2i38FY5ghCD_1Mi_auohTsoSIimq5ORhSI0.FWFXkj8I57"
 
 def termExtraction(context, query=None):
-		global mark
-		mark = util.pause("yahoo", mark)
-		d = dict( appid=APPID, context=context.encode("utf-8"))
-		if query:
-			d["query"] = query.encode("utf-8")
-		result = []
-		f = urllib.urlopen(URI, urllib.urlencode(d))
-		for event, elem in ElementTree.iterparse(f):
-			if elem.tag == "{urn:yahoo:cate}Result":
-				result.append(elem.text)
-		return result
+	global mark
+	mark = util.pause("yahoo", mark)
+	d = dict( appid=APPID, context=context.encode("utf-8"))
+	if query:
+		d["query"] = query.encode("utf-8")
+	result = []
+	f = urllib.urlopen(URI, urllib.urlencode(d))
+	for event, elem in ElementTree.iterparse(f):
+		if elem.tag == "{urn:yahoo:cate}Result":
+			result.append(elem.text)
+	return result
