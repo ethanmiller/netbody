@@ -43,8 +43,10 @@ class Image(Entity):
 	def spider(self):
 		''' When Image inits, we already have a tag list and the username - create obj based on that...'''
 		ret = []
-		for t in self.tags:
-			ret.append(Tag(tag=t))
+		# could have gobs of tags..
+		for t in random.sample(self.tags, min(len(self.tags), 10)):
+			t = t.strip()
+			if len(t) > 1 : ret.append(Tag(tag=t))
 		ret.append(UserName(username=self.username, flickr_id=self.author_id))
 		print "--- an Image (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
@@ -57,11 +59,16 @@ class Tag(Entity):
 
 	def spider(self):
 		ret = []
-		for im in apis.flickr.by_tag(self.tag):
+		# currently 5 random samples from each of these...
+		limit_to = 5
+		fk = apis.flickr.by_tag(self.tag)
+		for im in random.sample(fk, min(len(fk), limit_to)):
 			ret.append(Image(img_link=im['link'], username=im['author'], author_id=im['author_id'], title=im['title'], tags=im['tags']))
-		for url in apis.delic.by_tag(self.tag):
+		dl = apis.delic.by_tag(self.tag)
+		for url in random.sample(dl, min(len(dl), limit_to)):
 			ret.append(Link(url=url['link'], title=url['title']))
-		for blog in apis.technorati.by_tag(self.tag):
+		tc = apis.technorati.by_tag(self.tag)
+		for blog in random.sample(tc, min(len(tc), limit_to)):
 			ret.append(BlogPost(blog_link=blog['link'], title=blog['title'], summary=blog.get('summary', '')))
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
@@ -79,7 +86,8 @@ class BlogPost(Entity):
 		# yahoo term extration gets 'keywords' out of that...
 		for term in apis.yahoo.termExtraction(self.summary):
 			for t in term.split(' '):
-				ret.append(Tag(tag=t))
+				t = t.strip()
+				if len(t) > 1 and t not in util.CONST.NOISE_WORDS: ret.append(Tag(tag=t))
 		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
@@ -90,23 +98,28 @@ class UserName(Entity):
 
 	def spider(self):
 		ret = []
+		if not self.flickr_id:
+			self.flickr_id = apis.flickr.check_for_user(self.username) # make an attempt to find on flickr
+
+		limit_to = 5
 		if self.flickr_id:
 			# spider flickr network
-			for u in apis.flickr.social_network(self.flickr_id):
+			fnet = apis.flickr.social_network(self.flickr_id)
+			for u in random.sample(fnet, min(len(fnet), limit_to)):
 				ret.append(UserName(username=u['author'], flickr_id=u['author_id']))
 			# spider photos for user
-			for im in apis.flickr.user_images(self.flickr_id):
+			fph = apis.flickr.user_images(self.flickr_id)
+			for im in random.sample(fph, min(len(fph), limit_to)):
 				ret.append(Image(img_link=im['link'], username=im['author'], author_id=im['author_id'], title=im['title'], tags=im['tags']))
-		else:
-			pass
-			# TODO can use beautiful soup here to check for a flickr page with username, then parse page to find flickr_id (search form)
 		# try del.icio.us network regardless
-		for u in apis.delic.social_network(self.username):
+		dnet = apis.delic.social_network(self.username)
+		for u in random.sample(dnet, min(len(dnet), limit_to)):
 			# just returns a list of usernames
 			ret.append(UserName(username=u, flickr_id=None))
-		for l in apis.delic.links(self.username):
+		dln = apis.delic.links(self.username)
+		for l in random.sample(dln, min(len(dln), limit_to)):
 			ret.append(Link(url=l['link'], title=l['title']))
-		# TODO more possibilities in this spider
+		# TODO more possibilities in this spider... jaiku?
 		print "--- a UserName (%s) spiders %s other entities..." % (self.username, len(ret))
 		return ret
 
@@ -117,10 +130,17 @@ class Link(Entity):
 
 	def spider(self):
 		ret = []
-		for dat in apis.delic.url_data(self.url):
+		limit_to = 5
+		udat = apis.delic.url_data(self.url)
+		for dat in random.sample(udat, min(len(udat), limit_to)):
+			tags_added = 0 
 			for tdict in dat['tags']:
 				for t in tdict['term'].split(' '):
-					ret.append(Tag(tag=t))
+					if tags_added > 3 : break # 3 tags per record ..
+					t = t.strip()
+					if len(t) > 1 : 
+						ret.append(Tag(tag=t))
+						tags_added = tags_added + 1
 			ret.append(UserName(username=dat['author'], flickr_id=None))
 		print "--- a Link (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
@@ -137,27 +157,33 @@ def spider():
 	entity.active = True
 	print '\n\n__main spider() call on entity id=%s [%s]__' % (entity.id, entity.__class__)
 	network = entity.spider() 
-	if len(network) > 0:
+	ncount = len(network)
+	if ncount > 0:
 		rchoice = random.randrange(len(network))
 		pnetwork = network # save this network in case we need to come back to it
 	else:
 		print "~~found 0 other entities, reverting to last set"
 		network = pnetwork # reuse the last set and hope we get unstuck
+		ncount = len(network)
 		rchoice = random.randrange(len(network))
+	addcount = 0
 	for i, e in enumerate(network):
-		e = get_or_add(e)
+		added, e = get_or_add(e)
+		if added: addcount += 1
 		e.active = True
 		if rchoice == i : 
 			seed = e # choose a seed for next spider
 			print "seed id = %s [%s]" % (e.id, e.__class__)
+	print "++ %s entities, and %s of those were new ++" % (ncount, addcount)
 
 def get_or_add(entity):
-	"""if the entity is in the collection already, return the collected one. Otherwise add it to collection"""
+	"""if the entity is in the collection already, return the collected one. Otherwise add it to collection
+	returns boolean added, and obj"""
 	for e in entities:
-		if e.id == entity.id and e.__class__ == entity.__class__: return e
+		if e.id == entity.id and e.__class__ == entity.__class__: return False, e
 	entity.index = len(entities)
 	entities.append(entity)
-	return entity
+	return True, entity
 
 if __name__ == '__main__':
 	util.log('INIT')

@@ -23,7 +23,11 @@ def termExtraction(context, query=None):
 	if query:
 		d["query"] = query.encode("utf-8")
 	result = []
-	f = urllib.urlopen(URI, urllib.urlencode(d))
+	try:
+		f = urllib.urlopen(URI, urllib.urlencode(d))
+	except IOError:
+		print "{{ socket timeout in yahoo api"
+		return result
 	for event, elem in ElementTree.iterparse(f):
 		if elem.tag == "{urn:yahoo:cate}Result":
 			result.append(elem.text)
