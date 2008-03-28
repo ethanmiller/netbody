@@ -1,8 +1,7 @@
 # see also http://www.flickr.com/services/api/
 # using flickr json feed http://www.flickr.com/services/feeds/
-import urllib, simplejson, util
-#api_key = '4b86073fd285073df5233297bd5f596b'
-#flickr = flickrapi.FlickrAPI(api_key)
+import urllib, simplejson, util, flickrapi
+api_key = '4b86073fd285073df5233297bd5f596b'
 
 mark = 0
 
@@ -74,3 +73,15 @@ def check_for_user(uname):
 	print "^^ found a flickr usr %s" % uname
 	return fid
 	
+def photo_data(link):
+	flickr = flickrapi.FlickrAPI(api_key)
+	# expecting something like http://www.flickr.com/photos/ozten/2366650348/
+	pid = link.split('/')[5]
+	dat = flickr.photos_getInfo(photo_id=pid)
+	# return something we can pass directly to Image() constructor
+	ret = {'img_link' : link}
+	ret['author_id'] = dat.photo[0].owner[0]['nsid']
+	ret['username'] = dat.photo[0].owner[0]['username']
+	ret['title'] = dat.photo[0].title[0].text
+	ret['tags'] = [t.text for t in dat.photo[0].tags[0].tag]
+	return ret
