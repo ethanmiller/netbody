@@ -1,5 +1,5 @@
-import util, apis.flickr, apis.delic, apis.technorati, apis.jaiku
-import random, datetime, urllib2, socket
+import util, apis.flickr, apis.delic, apis.technorati, apis.youtube
+import random, datetime, urllib2, socket, os
 
 socket.setdefaulttimeout(15)
 
@@ -20,6 +20,10 @@ class Entity:
 		self.active = False
 		self.tmp_draw_ct = 50 # time it will take to render this entity
 		self.spiderable = True
+
+	def approve(self):
+		"""any expensive opperations go here instead of __init__"""
+		pass
 
 	def spider(self):
 		"""spider is always overidden"""
@@ -70,6 +74,7 @@ class Tag(Entity):
 		self.api_res_flickr = []
 		self.api_res_delic = []
 		self.api_res_tech = []
+		self.api_res_yt = []
 
 	def spider(self):
 		ret = []
@@ -96,6 +101,14 @@ class Tag(Entity):
 		for i in range(min(limit_to, len(self.api_res_tech))):
 			blog = self.api_res_tech.pop(0)
 			ret.append(BlogPost(blog_link=blog['link'], title=blog['title'], summary=blog.get('summary', '')))
+		# youtube
+		if not self.api_res_yt:
+			self.api_res_yt = apis.youtube.by_tag(self.tag)
+			random.shuffle(self.api_res_yt)
+		# better get just 2 at a time
+		for i in range(min(2, len(self.api_res_yt))):
+			yt = self.api_res_yt.pop(0)
+			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['media_credit'], tags=yt['media_category']))
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
 
@@ -104,6 +117,8 @@ class BlogPost(Entity):
 		Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
 		self.id = kwargs['blog_link']
 		self.status = 200
+
+	def approve(self):
 		try:
 			urllib2.urlopen(self.blog_link)
 		except urllib2.HTTPError, e:
@@ -139,9 +154,8 @@ class UserName(Entity):
 		class delic:
 			socnet = []
 			links = []
-		class jaiku:
-			socnet = []
-			stuff = []
+		class yt:
+			vids = []
 
 	def spider(self):
 		ret = []
@@ -150,7 +164,7 @@ class UserName(Entity):
 		self.prep_spider()
 		ret = ret + self.spider_flickr()
 		ret = ret + self.spider_delic()
-		ret = ret + self.spider_jaiku()
+		ret = ret + self.spider_yt()
 		####
 		if self.network_count == 0:
 			self.spiderable = False # friendless usernames have been leading me into sandpits
@@ -184,16 +198,16 @@ class UserName(Entity):
 					self.names.update(other.names)
 					return True
 			return False
-		if other.names.has_key('jaiku'):
-			if self.names.has_key('jaiku'):
-				return other.names.get('jaiku') == self.names.get('jaiku')
+		if other.names.has_key('youtube'):
+			if self.names.has_key('youtube'):
+				return other.names.get('youtube') == self.names.get('youtube')
 			for k, v in self.names.iteritems():
-				if k in ['flickr_id', 'flickr_display'] : continue # these aren't formats for jaiku names
-				if v == other.names.get('jaiku'):
-					print "^^^ claimed a jaiku user via %s = %s" % (k, v)
+				if k in ['flickr_id', 'flickr_display'] : continue # these aren't formats for yt names
+				if v == other.names.get('youtube'):
+					print "^^^ claimed a youtube user via %s = %s" % (k, v)
 					self.names.update(other.names)
 					return True
-		return False
+			return False
 	
 	def branch_out(self):
 		if not self.names.has_key('flickr_id'):
@@ -204,15 +218,6 @@ class UserName(Entity):
 					self.names['flickr_id'] = id
 					self.names['flickr_url'] = v
 					break
-		if not self.names.has_key('jaiku'):
-			# check for a jaiku user by trying to fill out the stuff list
-			for k, v in self.names.iteritems():
-				if k in ['flickr_id', 'flickr_display'] : continue # won't happen
-				self.api_res.jaiku.stuff = apis.jaiku.stuff(v)
-				if self.api_res.jaiku.stuff:
-					print "^^^ discoverd a jaiku user with %s = %s" % (k, v)
-					self.names['jaiku'] = v
-					break
 		if not self.names.has_key('del.icio.us'):
 			# check for del.icio.us user
 			for k, v in self.names.iteritems():
@@ -221,6 +226,15 @@ class UserName(Entity):
 				if self.api_res.delic.links:
 					print "^^^ discovered a del.icio.us user with %s = %s" % (k, v)
 					self.names["del.icio.us"] = v
+					break
+		if not self.names.has_key('youtube'):
+			# check for youtube user
+			for k, v in self.names.iteritems():
+				if k in ['flickr_id', 'flickr_display'] : continue # won't happen
+				self.api_res.yt.vids = apis.youtube.vids(v)
+				if self.api_res.yt.vids:
+					print "^^^ discovered a youtube user with %s = %s" % (k, v)
+					self.names["youtube"] = v
 					break
 
 	def prep_spider(self):
@@ -239,13 +253,10 @@ class UserName(Entity):
 			if not self.api_res.delic.links:
 				self.api_res.delic.links = apis.delic.links(self.names.get('del.icio.us'))
 				random.shuffle(self.api_res.delic.links)
-		if self.names.has_key('jaiku'):
-			if not self.api_res.jaiku.socnet:
-				self.api_res.jaiku.socnet = apis.jaiku.social_network(self.names.get('jaiku'))
-				random.shuffle(self.api_res.jaiku.socnet)
-			if not self.api_res.jaiku.stuff:
-				self.api_res.jaiku.stuff = apis.jaiku.stuff(self.names.get('jaiku'))
-				random.shuffle(self.api_res.jaiku.stuff)
+		if self.names.has_key('youtube'):
+			if not self.api_res.yt.vids:
+				self.api_res.yt.vids = apis.youtube.vids(self.names.get('youtube'))
+				random.shuffle(self.api_res.yt.vids)
 
 	def spider_flickr(self):
 		ret = []
@@ -276,19 +287,12 @@ class UserName(Entity):
 			ret.append(Link(url=l['link'], title=l['title']))
 		return ret
 
-	def spider_jaiku(self):
+	def spider_yt(self):
 		ret = []
-		netct = min(self.limit_to, len(self.api_res.jaiku.socnet))
-		self.network_count = self.network_count + netct
-		for i in range(netct):
-			u = self.api_res.jaiku.socnet.pop(0)
-			ret.append(UserName(names={'jaiku' : u['nick']}))
-		for i in range(min(self.limit_to, len(self.api_res.jaiku.stuff))):
-			s = self.api_res.jaiku.stuff.pop(0)
-			# different kind of objects for different stuff
-			if s['url'].find("flickr.com") >= 0:
-				print "got Image from jaiku feed"
-				ret.append(Image(**apis.flickr.photo_data(s['url'])))
+		# just get 2 vids
+		for i in range(min(2, len(self.api_res.yt.vids))):
+			yt = self.api_res.yt.vids.pop(0)
+			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['media_credit'], tags=yt['media_category']))
 		return ret
 
 class Link(Entity):
@@ -297,6 +301,8 @@ class Link(Entity):
 		self.id = kwargs['url']
 		self.api_res_delic = []
 		self.status = 200
+
+	def approve(self):
 		try:
 			urllib2.urlopen(self.url)
 		except urllib2.HTTPError, e:
@@ -325,6 +331,77 @@ class Link(Entity):
 			ret.append(UserName(names={'del.icio.us' : dat['author']}))
 		print "--- a Link (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
+
+class Video(Entity):
+	def __init__(self, **kwargs):
+		import urlparse
+		Entity.__init__(self, ['url', 'title', 'username', 'tags'], **kwargs)
+		q = urlparse.urlparse(self.url)[4]
+		self.id = q.split("=")[1]
+		self.status = 200
+		if type(self.tags) != list : self.tags = self.tags.split(' ')
+		self.proc_stage = 0
+		self.dl = None
+		self.splitvid = None
+		self.splitaud = None
+
+	def approve(self):
+		self.proc_files()
+	
+	def proc_files(self):
+		if self.proc_stage == 0:
+			# get the flv file
+			if self.dl == None:
+				self.dl = apis.youtube.get_vid(self.id, self.url)
+				return # initiate download
+			if self.dl.poll() == None: 
+				return # still downloading
+			if self.dl.poll() == 0:
+				print "YT got file %s" % self.title
+				self.proc_stage = 1
+			else:
+				print "YT download on %s got ERR" % self.title
+				self.status = 404
+				self.proc_stage = -1 # to end this processing now...
+		if self.proc_stage == 1:
+			if self.splitvid == None:
+				os.mkdir("resources/videos/%s" % self.id)
+				self.splitvid = apis.youtube.split_vid(self.id) # start splitting video into individual frames
+				return
+			if self.splitvid.poll() == None:
+				return # still splitting
+			if self.splitvid.poll() == 0:
+				print "YT split vid %s finished" % self.title
+				self.proc_stage = 2
+			else:
+				print "YT split vid %s got ERR" % self.title
+				self.proc_stage = -1
+		if self.proc_stage == 2:
+			if self.splitaud == None:
+				self.splitaud = apis.youtube.extract_audio(self.id) # create an audio file from movie
+				return
+			if self.splitaud.poll() == None:
+				return # still extracting
+			if self.splitaud.poll() == 0:
+				print "YT extract audio %s finished" % self.title
+				self.proc_stage = 3
+			else:
+				print "YT extract audio %s got ERR" % self.title
+				self.proc_stage = -1
+
+	def spider(self):
+		"""already have user, and tags"""
+		ret = []
+		for t in random.sample(self.tags, min(len(self.tags), 8)):
+			t = t.strip()
+			if len(t) > 1 : ret.append(Tag(tag=t))
+		ret.append(UserName(names={'youtube' : self.username}))
+		print "--- a YouTube Vid (%s) spiders %s other entities..." % (self.title, len(ret))
+		return ret
+
+	def draw(self):
+		self.proc_files()
+		Entity.draw(self)
 
 def spider():
 	global entities, seed, pnetwork
@@ -363,6 +440,7 @@ def get_or_add(entity):
 	if entities.has_key(ekey):
 		for e in entities[ekey]:
 			if e.matches(entity): return False, e
+		entity.approve()
 		entity.index = len(entities[ekey])
 		entities[ekey].append(entity)
 		return True, entity
