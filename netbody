@@ -17,9 +17,11 @@ class Manager:
 				self.ctx.paint()
 
 				has_active = False
-				for e in collection.entities:
-					if not has_active and e.active: has_active = True
-					e.draw()
+				esets = collection.entities.values()
+				if esets:
+						for e in reduce(lambda x,y:x+y, esets):
+							if not has_active and e.active: has_active = True
+							e.draw()
 
 				if not has_active:
 					# active nodes have finished drawing, spider again with seed
