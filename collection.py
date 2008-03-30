@@ -1,5 +1,7 @@
 import util, apis.flickr, apis.delic, apis.technorati, apis.jaiku
-import random, datetime
+import random, datetime, urllib2, socket
+
+socket.setdefaulttimeout(15)
 
 entities = {}
 seed = None
@@ -101,6 +103,15 @@ class BlogPost(Entity):
 	def __init__(self, **kwargs):
 		Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
 		self.id = kwargs['blog_link']
+		self.status = 200
+		try:
+			urllib2.urlopen(self.blog_link)
+		except urllib2.HTTPError, e:
+			print "0000 problem with url %s 00000 returned code %s" % (self.blog_link, e.code)
+			self.status = e.code
+		except urllib2.URLError:
+			print "0000 problem with url %s 00000 ------- calling it 404" % self.blog_link
+			self.status = 400
 
 	def spider(self):
 		import apis.yahoo
@@ -135,6 +146,7 @@ class UserName(Entity):
 	def spider(self):
 		ret = []
 		self.network_count = 0
+		self.branch_out()
 		self.prep_spider()
 		ret = ret + self.spider_flickr()
 		ret = ret + self.spider_delic()
@@ -182,6 +194,34 @@ class UserName(Entity):
 					self.names.update(other.names)
 					return True
 		return False
+	
+	def branch_out(self):
+		if not self.names.has_key('flickr_id'):
+			# check for a flickr user with one of my names
+			for k, v in self.names.iteritems():
+				id = apis.flickr.check_for_user(v)
+				if id:
+					self.names['flickr_id'] = id
+					self.names['flickr_url'] = v
+					break
+		if not self.names.has_key('jaiku'):
+			# check for a jaiku user by trying to fill out the stuff list
+			for k, v in self.names.iteritems():
+				if k in ['flickr_id', 'flickr_display'] : continue # won't happen
+				self.api_res.jaiku.stuff = apis.jaiku.stuff(v)
+				if self.api_res.jaiku.stuff:
+					print "^^^ discoverd a jaiku user with %s = %s" % (k, v)
+					self.names['jaiku'] = v
+					break
+		if not self.names.has_key('del.icio.us'):
+			# check for del.icio.us user
+			for k, v in self.names.iteritems():
+				if k in ['flickr_id', 'flickr_display'] : continue # won't happen
+				self.api_res.delic.links = apis.delic.links(v)
+				if self.api_res.delic.links:
+					print "^^^ discovered a del.icio.us user with %s = %s" % (k, v)
+					self.names["del.icio.us"] = v
+					break
 
 	def prep_spider(self):
 		"""make api calls for services user has, but we have no data"""
@@ -204,7 +244,7 @@ class UserName(Entity):
 				self.api_res.jaiku.socnet = apis.jaiku.social_network(self.names.get('jaiku'))
 				random.shuffle(self.api_res.jaiku.socnet)
 			if not self.api_res.jaiku.stuff:
-				self.api_res.jaiku.socnet = apis.jaiku.stuff(self.names.get('jaiku'))
+				self.api_res.jaiku.stuff = apis.jaiku.stuff(self.names.get('jaiku'))
 				random.shuffle(self.api_res.jaiku.stuff)
 
 	def spider_flickr(self):
@@ -249,7 +289,6 @@ class UserName(Entity):
 			if s['url'].find("flickr.com") >= 0:
 				print "got Image from jaiku feed"
 				ret.append(Image(**apis.flickr.photo_data(s['url'])))
-			# add twitter here
 		return ret
 
 class Link(Entity):
@@ -257,6 +296,15 @@ class Link(Entity):
 		Entity.__init__(self, ['url', 'title'], **kwargs)
 		self.id = kwargs['url']
 		self.api_res_delic = []
+		self.status = 200
+		try:
+			urllib2.urlopen(self.url)
+		except urllib2.HTTPError, e:
+			print "0000 problem with url %s 00000 returned code %s" % (self.url, e.code)
+			self.status = e.code
+		except urllib2.URLError:
+			print "0000 problem with url %s 00000 ------- calling it 404" % self.url
+			self.status = 400
 
 	def spider(self):
 		ret = []
