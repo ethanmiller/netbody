@@ -6,6 +6,38 @@ socket.setdefaulttimeout(15)
 entities = {}
 seed = None
 pnetwork = None
+posi = None
+
+class Positioner:
+	def __init__(self):
+		""" This class keeps track of entity positions"""
+		self.entities = {} # containing : {'class_name' : {'colx' : 0, 'entity_pos' : [(x,y), (x,y), ...]}, ... }
+		# the x position of each entity is relative to the colx so that I can push over the whole column
+		self.total_width = 0
+
+	def add_node(self, type):
+		if not self.entities.has_key(type):
+			nx = self.total_width + 10
+			self.entities[type] = {'colx' :	nx, 'entity_pos' : [(0, 10)]}
+			self.total_width = self.total_width + 10
+		else:
+			# last entity_pos gives ypos
+			ny = self.entities[type]['entity_pos'][-1][1] + 10
+			nx = self.entities[type]['entity_pos'][-1][0] # make the xpos same as previous pos
+			if ny >= util.CONST.WIN_HEIGHT:
+				# we have to bump the other columns to the right
+				for e in self.entities.values():
+					if e['colx'] > self.entities[type]['colx']: e['colx'] = e['colx'] + 10
+				self.entities[type]['colx'] = self.entities[type]['colx'] + 10
+				nx = nx + 10
+				ny = 10
+			self.entities[type]['entity_pos'].append((nx, ny))
+
+	def get_pos(self, type, index):
+		"""each entity will always get position from here"""
+		cx = self.entities[type]['colx']
+		return (cx + self.entities[type]['entity_pos'][index][0], self.entities[type]['entity_pos'][index][1])
+			
 
 class Entity:
 	""" Base class for all entities in netbody visualization """
@@ -18,8 +50,36 @@ class Entity:
 			setattr(self, k, v)
 		if chkwargs: raise TypeError, "Missing arg(s) :: %s" % chkwargs
 		self.active = False
-		self.tmp_draw_ct = 50 # time it will take to render this entity
+		self.is_seed = False
+		self.width = 1
+		self.ext_width = 1
+		self.height = 1
+		self.ext_height = 1
 		self.spiderable = True
+		self.anet = {}
+		self.pnet = {}
+	
+	def add_conn_active(self, type, indx):
+		# make sure it's not on passive side
+		if self.pnet.has_key(type):
+			if indx in self.pnet[type]: 
+				self.pnet.remove(indx)
+		if self.anet.has_key(type):
+			if indx not in self.anet[type]: 
+				self.anet[type].append(indx)
+		else:
+			self.anet[type] = [indx]
+
+	def add_conn_passive(self, type, indx):
+		# make sure it's not on active side
+		if self.anet.has_key(type):
+			if indx in self.anet[type]: 
+				self.anet.remove(indx)
+		if self.pnet.has_key(type):
+			if indx not in self.pnet[type]: 
+				self.pnet[type].append(indx)
+		else:
+			self.pnet[type] = [indx]
 
 	def approve(self):
 		"""any expensive opperations go here instead of __init__"""
@@ -33,14 +93,14 @@ class Entity:
 		"""the base match checking"""
 		return self.id == other.id
 
-	def draw(self):
-		if self.active:
-			if self.tmp_draw_ct == 0:
-				# done drawing
-				self.active = False
-				self.tmp_draw_ct = 50
-			else:
-				self.tmp_draw_ct = self.tmp_draw_ct - 1
+	def draw(self, ctx):
+		ctx.set_source_rgb(0.2, 0.2, 0.2)
+		x, y = posi.get_pos(str(self.__class__), self.index)
+		ctx.rectangle(x, y, self.width, self.height)
+		#ctx.arc(x, y, 1.0, 0, 360)
+		#ctx.close_path()
+		ctx.fill()
+		
 
 class Image(Entity):
 	def __init__(self, **kwargs):
@@ -399,17 +459,21 @@ class Video(Entity):
 		print "--- a YouTube Vid (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
-	def draw(self):
+	def draw(self, ctx):
 		self.proc_files()
-		Entity.draw(self)
+		Entity.draw(self, ctx)
 
 def spider():
-	global entities, seed, pnetwork
+	global entities, seed, pnetwork, posi
+	if not posi:
+		posi = Positioner()
 	if not seed: 
 		if len(entities.keys()) > 0 : raise RuntimeError, "spider without argument only to initialize"
 		entity = Tag(tag='identity')
+		entity.is_seed = True
 		entity.index = 0
 		entities[str(entity.__class__)] = [entity]
+		posi.add_node(str(entity.__class__))
 	else:
 		entity = seed
 	entity.active = True
@@ -427,9 +491,14 @@ def spider():
 	for i, e in enumerate(network):
 		added, e = get_or_add(e)
 		if added: addcount += 1
+		# this flag lets entity know to animate
 		e.active = True
+		# make sure entities know about others in their network..
+		e.add_conn_passive(str(entity.__class__), entity.index)
+		entity.add_conn_active(str(e.__class__), e.index)
 		if rchoice == i : 
 			seed = e # choose a seed for next spider
+			e.is_seed = True
 			print "seed id = %s [%s]" % (e.id, e.__class__)
 	print "++ %s entities, and %s of those were new ++" % (ncount, addcount)
 
@@ -443,9 +512,14 @@ def get_or_add(entity):
 		entity.approve()
 		entity.index = len(entities[ekey])
 		entities[ekey].append(entity)
+		posi.add_node(str(entity.__class__))
 		return True, entity
 	else:
+		# first of its type
+		entity.approve()
+		entity.index = 0
 		entities[ekey] = [entity]
+		posi.add_node(str(entity.__class__))
 		return True, entity
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ class Manager:
 		n = 0
 		while True:
 			try:
-				self.ctx.set_source_rgb(0, 0, 0) # clear to black
+				self.ctx.set_source_rgb(0.8, 0.8, 0.6) # clear to black
 				self.ctx.paint()
 
 				has_active = False
@@ -21,7 +21,7 @@ class Manager:
 				if esets:
 						for e in reduce(lambda x,y:x+y, esets):
 							if not has_active and e.active: has_active = True
-							e.draw()
+							e.draw(self.ctx)
 
 				if not has_active:
 					# active nodes have finished drawing, spider again with seed
