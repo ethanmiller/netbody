@@ -5,7 +5,9 @@ import cairo, util, collection
 class Manager:
 	def __init__(self):
 		self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, util.CONST.WIN_WIDTH, util.CONST.WIN_HEIGHT)
+		self.out_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, util.CONST.WIN_WIDTH/2, util.CONST.WIN_HEIGHT/2)
 		self.ctx = cairo.Context(self.surface)
+		self.out_ctx = cairo.Context(self.out_surface)
 		self.ctx.set_font_face(create_cairo_font_face_for_file("resources/Inconsolata.otf"))
 		self.ctx.set_font_size(24)
 	
@@ -28,7 +30,11 @@ class Manager:
 					collection.spider()
 
 				if util.CONST.SAVE_FRAMES:
-					self.surface.write_to_png("output/frame%05d.png" % n)
+					self.out_ctx.set_source_surface(self.surface, 0, 0)
+					self.out_ctx.paint()
+					self.out_ctx.scale(0.5, 0.5)
+					self.out_surface.write_to_png("output/frame%05d.png" % n)
+					self.out_ctx.scale(2.0, 2.0)
 					n = n + 1
 
 			except KeyboardInterrupt:
