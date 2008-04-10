@@ -1,5 +1,6 @@
 import util, apis.flickr, apis.delic, apis.technorati, apis.youtube
 import random, datetime, urllib2, socket, os
+from vec2d import vec2d
 
 socket.setdefaulttimeout(15)
 
@@ -17,20 +18,20 @@ class Positioner:
 
 	def add_node(self, type):
 		if not self.entities.has_key(type):
-			nx = self.total_width + 10
-			self.entities[type] = {'colx' :	nx, 'entity_pos' : [(0, 10)]}
-			self.total_width = self.total_width + 10
+			nx = self.total_width + util.CONST.GRID_SPACE
+			self.entities[type] = {'colx' :	nx, 'entity_pos' : [(0, util.CONST.GRID_SPACE)]}
+			self.total_width = self.total_width + util.CONST.GRID_SPACE
 		else:
 			# last entity_pos gives ypos
-			ny = self.entities[type]['entity_pos'][-1][1] + 10
+			ny = self.entities[type]['entity_pos'][-1][1] + util.CONST.GRID_SPACE
 			nx = self.entities[type]['entity_pos'][-1][0] # make the xpos same as previous pos
 			if ny >= util.CONST.WIN_HEIGHT:
 				# we have to bump the other columns to the right
 				for e in self.entities.values():
-					if e['colx'] > self.entities[type]['colx']: e['colx'] = e['colx'] + 10
-				self.entities[type]['colx'] = self.entities[type]['colx'] + 10
-				nx = nx + 10
-				ny = 10
+					if e['colx'] > self.entities[type]['colx']: e['colx'] = e['colx'] + util.CONST.GRID_SPACE
+				self.entities[type]['colx'] = self.entities[type]['colx'] + util.CONST.GRID_SPACE
+				nx = nx + util.CONST.GRID_SPACE
+				ny = util.CONST.GRID_SPACE
 			self.entities[type]['entity_pos'].append((nx, ny))
 
 	def get_pos(self, type, index):
@@ -51,30 +52,30 @@ class Entity:
 		if chkwargs: raise TypeError, "Missing arg(s) :: %s" % chkwargs
 		self.active = False
 		self.is_seed = False
-		self.width = 1
-		self.ext_width = 1
-		self.height = 1
-		self.ext_height = 1
+		self.width = 2
+		self.ext_width = 2
+		self.height = 2
+		self.ext_height = 2
 		self.spiderable = True
-		self.anet = {}
-		self.pnet = {}
+		self.anet = {} # {'class-type' : { nindx : {'control_pts' : [(x,y), ..], 'curve_pts' : [(x,y), ..], 'curveindx' : i}, nindx : {}, ..}, ...}
+		self.pnet = {} # {'class-type' : [ nindx, nindx, ..], ...}
 	
 	def add_conn_active(self, type, indx):
 		# make sure it's not on passive side
 		if self.pnet.has_key(type):
 			if indx in self.pnet[type]: 
-				self.pnet.remove(indx)
+				self.pnet[type].remove(indx)
 		if self.anet.has_key(type):
-			if indx not in self.anet[type]: 
-				self.anet[type].append(indx)
+			if indx not in self.anet[type].keys(): 
+				self.anet[type][indx] = {'control_pts' : [], 'curve_pts' : [], 'curve_indx' : 0}
 		else:
-			self.anet[type] = [indx]
+			self.anet[type] = {indx : {'control_pts' : [], 'curve_pts' : [], 'curve_indx' : 0}}
 
 	def add_conn_passive(self, type, indx):
 		# make sure it's not on active side
 		if self.anet.has_key(type):
-			if indx in self.anet[type]: 
-				self.anet.remove(indx)
+			if indx in self.anet[type].keys(): 
+				del self.anet[type][indx]
 		if self.pnet.has_key(type):
 			if indx not in self.pnet[type]: 
 				self.pnet[type].append(indx)
@@ -93,8 +94,51 @@ class Entity:
 		"""the base match checking"""
 		return self.id == other.id
 
+	def create_ctrl_pts(self, other_type, other_indx):
+		ox, oy = posi.get_pos(other_type, other_indx)
+		x, y = posi.get_pos(str(self.__class__), self.index)
+		# randomize the horizontal change, leave the vertical aligned
+		x1 = max(x, ox) + random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX)
+		y1 = y
+		x2 = max(x, ox) + random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX)
+		y2 = oy
+		return [vec2d(x, y), vec2d(x1, y1), vec2d(x2, y2), vec2d(ox, oy)]
+
+	def get_ctrl_pts(self, type, indx):
+		if not self.anet[type][indx]['control_pts']:
+			self.anet[type][indx]['control_pts'] = self.create_ctrl_pts(type, indx)
+		return self.anet[type][indx]['control_pts']
+
+	def get_curve_pts(self, type, indx):
+		if not self.anet[type][indx]['curve_pts']:
+			self.anet[type][indx]['curve_pts'] = util.calculate_bezier(self.anet[type][indx]['control_pts'], random.randint(util.CONST.CURVE_SEG_MIN, util.CONST.CURVE_SEG_MAX))
+		return self.anet[type][indx]['curve_pts']
+
 	def draw(self, ctx):
-		ctx.set_source_rgb(0.2, 0.2, 0.2)
+		# network
+		if self.active and self.is_seed:
+			# draw network starting from this point
+			curves_done = True
+			for typek, typev in self.anet.iteritems():
+				for k, v in typev.iteritems():
+					# at this depth k = index
+					ctrl_pts = self.get_ctrl_pts(typek, k)
+					curve_pts = self.get_curve_pts(typek, k)
+					# draw out as much of the curve as we have at this point
+					if self.anet[typek][k]['curve_indx'] < len(curve_pts): 
+						self.anet[typek][k]['curve_indx'] = self.anet[typek][k]['curve_indx'] + 1
+						curves_done = False
+					ctx.move_to(curve_pts[0][0], curve_pts[0][1])
+					for i, p in enumerate(curve_pts[:self.anet[typek][k]['curve_indx']]):
+						if i == 0 : continue
+						ctx.line_to(p[0], p[1])
+			if curves_done:
+				self.active = False
+				self.is_seed = False		
+		ctx.stroke()
+					
+		if self.is_seed : ctx.set_source_rgb(1.0, 0.2, 0.2)
+		else : ctx.set_source_rgb(0.2, 0.2, 0.2)
 		x, y = posi.get_pos(str(self.__class__), self.index)
 		ctx.rectangle(x, y, self.width, self.height)
 		#ctx.arc(x, y, 1.0, 0, 360)
