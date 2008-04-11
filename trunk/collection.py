@@ -11,15 +11,19 @@ posi = None
 
 class Positioner:
 	def __init__(self):
-		""" This class keeps track of entity positions"""
-		self.entities = {} # containing : {'class_name' : {'colx' : 0, 'entity_pos' : [(x,y), (x,y), ...]}, ... }
+		""" This class keeps track of entity positions and dimensions 
+			It will determine position in relation to other positions and dimensions 
+			But entities have to update this class with their dimensions
+		"""
+		self.entities = {} # containing : {'class_name' : {'colx' : 0, 'entity_pos' : [(x,y,w,h), (x,y,w,h), ...]}, ... }
 		# the x position of each entity is relative to the colx so that I can push over the whole column
 		self.total_width = 0
 
 	def add_node(self, type):
 		if not self.entities.has_key(type):
 			nx = self.total_width + util.CONST.GRID_SPACE
-			self.entities[type] = {'colx' :	nx, 'entity_pos' : [(0, util.CONST.GRID_SPACE)]}
+			xywh = (0, util.CONST.GRID_SPACE, util.CONST.ENTITY_DEFAULT_SIZE, util.CONST.ENTITY_DEFAULT_SIZE)
+			self.entities[type] = {'colx' :	nx, 'entity_pos' : [xywh]}
 			self.total_width = self.total_width + util.CONST.GRID_SPACE
 		else:
 			# last entity_pos gives ypos
@@ -32,13 +36,76 @@ class Positioner:
 				self.entities[type]['colx'] = self.entities[type]['colx'] + util.CONST.GRID_SPACE
 				nx = nx + util.CONST.GRID_SPACE
 				ny = util.CONST.GRID_SPACE
-			self.entities[type]['entity_pos'].append((nx, ny))
+			self.entities[type]['entity_pos'].append((nx, ny, util.CONST.ENTITY_DEFAULT_SIZE, util.CONST.ENTITY_DEFAULT_SIZE))
+
+	def update_size(self, type, index, w, h):
+		xywh = self.entities[type]['entity_pos'][index]
+		self.entities[type]['entity_pos'][index] = (xywh[0], xywh[1], w, h)
 
 	def get_pos(self, type, index):
 		"""each entity will always get position from here"""
 		cx = self.entities[type]['colx']
 		return (cx + self.entities[type]['entity_pos'][index][0], self.entities[type]['entity_pos'][index][1])
-			
+
+class Curve:
+	""" A curve owned by an entity to connect it to another entity """
+	def __init__(self, otype, oindx):
+		self.end_type = otype
+		self.end_indx = oindx
+		self.control_pts = []
+		self.control_xoff = (random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX), random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX))
+		self.segments = random.randint(util.CONST.CURVE_SEG_MIN, util.CONST.CURVE_SEG_MAX)
+		self.curve_pts = []
+		self.curve_indx = 0
+		self.last_oxy = (0, 0)
+
+	def matches(self, t, i):
+		return self.end_type == t and self.end_indx == i
+
+	def calc_ctrl_pts(self, x, y):
+		ox, oy = posi.get_pos(self.end_type, self.end_indx)
+		# randomize the horizontal change, leave the vertical aligned
+		x1 = max(x, ox) + self.control_xoff[0]
+		y1 = y
+		x2 = max(x, ox) + self.control_xoff[1]
+		y2 = oy
+		self.control_pts = [vec2d(x, y), vec2d(x1, y1), vec2d(x2, y2), vec2d(ox, oy)]
+
+	def set_ctrl_pts(self, x, y, that_xy_changed):
+		oxy = posi.get_pos(self.end_type, self.end_indx)
+		this_xy_changed = oxy != self.last_oxy
+		self.last_oxy = oxy
+		if not self.control_pts or that_xy_changed or this_xy_changed:
+			self.calc_ctrl_pts(x, y)
+
+	def set_curve_pts(self, that_xy_changed):
+		if not self.control_pts: raise RuntimeError, "Have to set control points before calculating curve points"
+		oxy = posi.get_pos(self.end_type, self.end_indx)
+		this_xy_changed = oxy != self.last_oxy
+		self.last_oxy = oxy
+		if not self.curve_pts or that_xy_changed or this_xy_changed:
+			self.curve_pts = util.calculate_bezier(self.control_pts, self.segments)
+
+	def draw(self, ctx, isactive):
+		# draw out as much of the curve as we have at this point
+		ret_curve_done = True
+		if isactive:
+			# draw segment by segment
+			if self.curve_indx < len(self.curve_pts): 
+				self.curve_indx = self.curve_indx + 1
+				ret_curve_done = False
+			ctx.move_to(self.curve_pts[0][0], self.curve_pts[0][1])
+			for i, p in enumerate(self.curve_pts[:self.curve_indx]):
+				if i == 0 : continue
+				ctx.line_to(p[0], p[1])
+		else:
+			# just draw the curve
+			ctx.move_to(self.control_pts[0][0], self.control_pts[0][1])
+			ctx.curve_to(self.control_pts[1][0], self.control_pts[1][1], 
+						self.control_pts[2][0], self.control_pts[2][1],
+						self.control_pts[3][0], self.control_pts[3][1])
+		ctx.stroke()
+		return ret_curve_done
 
 class Entity:
 	""" Base class for all entities in netbody visualization """
@@ -50,37 +117,28 @@ class Entity:
 			del(chkwargs[indxof])
 			setattr(self, k, v)
 		if chkwargs: raise TypeError, "Missing arg(s) :: %s" % chkwargs
+		self.last_xy = (0, 0)
 		self.active = False
 		self.is_seed = False
-		self.width = 2
-		self.ext_width = 2
-		self.height = 2
-		self.ext_height = 2
+		self.width = util.CONST.ENTITY_DEFAULT_SIZE
+		self.ext_width = util.CONST.ENTITY_DEFAULT_SIZE
+		self.height = util.CONST.ENTITY_DEFAULT_SIZE
+		self.ext_height = util.CONST.ENTITY_DEFAULT_SIZE
 		self.spiderable = True
-		self.anet = {} # {'class-type' : { nindx : {'control_pts' : [(x,y), ..], 'curve_pts' : [(x,y), ..], 'curveindx' : i}, nindx : {}, ..}, ...}
-		self.pnet = {} # {'class-type' : [ nindx, nindx, ..], ...}
-	
-	def add_conn_active(self, type, indx):
-		# make sure it's not on passive side
-		if self.pnet.has_key(type):
-			if indx in self.pnet[type]: 
-				self.pnet[type].remove(indx)
-		if self.anet.has_key(type):
-			if indx not in self.anet[type].keys(): 
-				self.anet[type][indx] = {'control_pts' : [], 'curve_pts' : [], 'curve_indx' : 0}
-		else:
-			self.anet[type] = {indx : {'control_pts' : [], 'curve_pts' : [], 'curve_indx' : 0}}
+		self.curves = []
 
-	def add_conn_passive(self, type, indx):
-		# make sure it's not on active side
-		if self.anet.has_key(type):
-			if indx in self.anet[type].keys(): 
-				del self.anet[type][indx]
-		if self.pnet.has_key(type):
-			if indx not in self.pnet[type]: 
-				self.pnet[type].append(indx)
-		else:
-			self.pnet[type] = [indx]
+	def has_curve(self, type, indx):
+		for c in self.curves:
+			if c.matches(type, indx): return True
+		return False
+	
+	def add_connection(self, type, indx):
+		if not self.has_curve(type, indx):
+			self.curves.append(Curve(type, indx))
+
+	def del_connection(self, type, indx):
+		for i, c in enumerate(self.curves):
+			if c.matches(type, indx): del(self.curves[i]); return
 
 	def approve(self):
 		"""any expensive opperations go here instead of __init__"""
@@ -94,54 +152,24 @@ class Entity:
 		"""the base match checking"""
 		return self.id == other.id
 
-	def create_ctrl_pts(self, other_type, other_indx):
-		ox, oy = posi.get_pos(other_type, other_indx)
-		x, y = posi.get_pos(str(self.__class__), self.index)
-		# randomize the horizontal change, leave the vertical aligned
-		x1 = max(x, ox) + random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX)
-		y1 = y
-		x2 = max(x, ox) + random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX)
-		y2 = oy
-		return [vec2d(x, y), vec2d(x1, y1), vec2d(x2, y2), vec2d(ox, oy)]
-
-	def get_ctrl_pts(self, type, indx):
-		if not self.anet[type][indx]['control_pts']:
-			self.anet[type][indx]['control_pts'] = self.create_ctrl_pts(type, indx)
-		return self.anet[type][indx]['control_pts']
-
-	def get_curve_pts(self, type, indx):
-		if not self.anet[type][indx]['curve_pts']:
-			self.anet[type][indx]['curve_pts'] = util.calculate_bezier(self.anet[type][indx]['control_pts'], random.randint(util.CONST.CURVE_SEG_MIN, util.CONST.CURVE_SEG_MAX))
-		return self.anet[type][indx]['curve_pts']
 
 	def draw(self, ctx):
-		# network
-		if self.active and self.is_seed:
-			# draw network starting from this point
-			curves_done = True
-			for typek, typev in self.anet.iteritems():
-				for k, v in typev.iteritems():
-					# at this depth k = index
-					ctrl_pts = self.get_ctrl_pts(typek, k)
-					curve_pts = self.get_curve_pts(typek, k)
-					# draw out as much of the curve as we have at this point
-					if self.anet[typek][k]['curve_indx'] < len(curve_pts): 
-						self.anet[typek][k]['curve_indx'] = self.anet[typek][k]['curve_indx'] + 1
-						curves_done = False
-					ctx.move_to(curve_pts[0][0], curve_pts[0][1])
-					for i, p in enumerate(curve_pts[:self.anet[typek][k]['curve_indx']]):
-						if i == 0 : continue
-						ctx.line_to(p[0], p[1])
-			if curves_done:
-				self.active = False
-				self.is_seed = False		
-		ctx.stroke()
+		# have we moved?
+		xy = posi.get_pos(str(self.__class__), self.index)
+		has_changed = xy != self.last_xy
+		self.last_xy = xy
+		curves_done = True
+		for curve in self.curves:
+			curve.set_ctrl_pts(xy[0], xy[0], has_changed)
+			curve.set_curve_pts(has_changed)
+			if not curve.draw(ctx, self.active): curves_done = False
+		if curves_done:
+			self.active = False
+			self.is_seed = False		
 					
 		if self.is_seed : ctx.set_source_rgb(1.0, 0.2, 0.2)
 		else : ctx.set_source_rgb(0.2, 0.2, 0.2)
-		x, y = posi.get_pos(str(self.__class__), self.index)
-		ctx.rectangle(x, y, self.width, self.height)
-		#ctx.arc(x, y, 1.0, 0, 360)
+		ctx.rectangle(xy[0], xy[1], self.width, self.height)
 		#ctx.close_path()
 		ctx.fill()
 		
@@ -537,9 +565,9 @@ def spider():
 		if added: addcount += 1
 		# this flag lets entity know to animate
 		e.active = True
-		# make sure entities know about others in their network..
-		e.add_conn_passive(str(entity.__class__), entity.index)
-		entity.add_conn_active(str(e.__class__), e.index)
+		# make sure spidering entity has all the connections
+		entity.add_connection(str(e.__class__), e.index)
+		e.del_connection(str(entity.__class__), entity.index)
 		if rchoice == i : 
 			seed = e # choose a seed for next spider
 			e.is_seed = True
