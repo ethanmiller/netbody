@@ -1,182 +1,15 @@
-import util, apis.flickr, apis.delic, apis.technorati, apis.youtube
+import core, util, apis.flickr, apis.delic, apis.technorati, apis.youtube
 import random, datetime, urllib2, socket, os
-from vec2d import vec2d
 
 socket.setdefaulttimeout(15)
 
 entities = {}
 seed = None
 pnetwork = None
-posi = None
 
-class Positioner:
-	def __init__(self):
-		""" This class keeps track of entity positions and dimensions 
-			It will determine position in relation to other positions and dimensions 
-			But entities have to update this class with their dimensions
-		"""
-		self.entities = {} # containing : {'class_name' : {'colx' : 0, 'entity_pos' : [(x,y,w,h), (x,y,w,h), ...]}, ... }
-		# the x position of each entity is relative to the colx so that I can push over the whole column
-		self.total_width = 0
-
-	def add_node(self, type):
-		if not self.entities.has_key(type):
-			nx = self.total_width + util.CONST.GRID_SPACE
-			xywh = (0, util.CONST.GRID_SPACE, util.CONST.ENTITY_DEFAULT_SIZE, util.CONST.ENTITY_DEFAULT_SIZE)
-			self.entities[type] = {'colx' :	nx, 'entity_pos' : [xywh]}
-			self.total_width = self.total_width + util.CONST.GRID_SPACE
-		else:
-			# last entity_pos gives ypos
-			ny = self.entities[type]['entity_pos'][-1][1] + util.CONST.GRID_SPACE
-			nx = self.entities[type]['entity_pos'][-1][0] # make the xpos same as previous pos
-			if ny >= util.CONST.WIN_HEIGHT:
-				# we have to bump the other columns to the right
-				for e in self.entities.values():
-					if e['colx'] > self.entities[type]['colx']: e['colx'] = e['colx'] + util.CONST.GRID_SPACE
-				self.entities[type]['colx'] = self.entities[type]['colx'] + util.CONST.GRID_SPACE
-				nx = nx + util.CONST.GRID_SPACE
-				ny = util.CONST.GRID_SPACE
-			self.entities[type]['entity_pos'].append((nx, ny, util.CONST.ENTITY_DEFAULT_SIZE, util.CONST.ENTITY_DEFAULT_SIZE))
-
-	def update_size(self, type, index, w, h):
-		xywh = self.entities[type]['entity_pos'][index]
-		self.entities[type]['entity_pos'][index] = (xywh[0], xywh[1], w, h)
-
-	def get_pos(self, type, index):
-		"""each entity will always get position from here"""
-		cx = self.entities[type]['colx']
-		return (cx + self.entities[type]['entity_pos'][index][0], self.entities[type]['entity_pos'][index][1])
-
-class Curve:
-	""" A curve owned by an entity to connect it to another entity """
-	def __init__(self, otype, oindx):
-		self.end_type = otype
-		self.end_indx = oindx
-		self.control_pts = []
-		self.control_xoff = (random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX), random.randint(util.CONST.CURVE_X_VAR_MIN, util.CONST.CURVE_X_VAR_MAX))
-		self.segments = random.randint(util.CONST.CURVE_SEG_MIN, util.CONST.CURVE_SEG_MAX)
-		self.curve_pts = []
-		self.curve_indx = 0
-		self.last_oxy = (0, 0)
-
-	def matches(self, t, i):
-		return self.end_type == t and self.end_indx == i
-
-	def calc_ctrl_pts(self, x, y):
-		ox, oy = posi.get_pos(self.end_type, self.end_indx)
-		# randomize the horizontal change, leave the vertical aligned
-		x1 = max(x, ox) + self.control_xoff[0]
-		y1 = y
-		x2 = max(x, ox) + self.control_xoff[1]
-		y2 = oy
-		self.control_pts = [vec2d(x, y), vec2d(x1, y1), vec2d(x2, y2), vec2d(ox, oy)]
-
-	def set_ctrl_pts(self, x, y, that_xy_changed):
-		oxy = posi.get_pos(self.end_type, self.end_indx)
-		this_xy_changed = oxy != self.last_oxy
-		self.last_oxy = oxy
-		if not self.control_pts or that_xy_changed or this_xy_changed:
-			self.calc_ctrl_pts(x, y)
-
-	def set_curve_pts(self, that_xy_changed):
-		if not self.control_pts: raise RuntimeError, "Have to set control points before calculating curve points"
-		oxy = posi.get_pos(self.end_type, self.end_indx)
-		this_xy_changed = oxy != self.last_oxy
-		self.last_oxy = oxy
-		if not self.curve_pts or that_xy_changed or this_xy_changed:
-			self.curve_pts = util.calculate_bezier(self.control_pts, self.segments)
-
-	def draw(self, ctx, isactive):
-		# draw out as much of the curve as we have at this point
-		ret_curve_done = True
-		if isactive:
-			# draw segment by segment
-			if self.curve_indx < len(self.curve_pts): 
-				self.curve_indx = self.curve_indx + 1
-				ret_curve_done = False
-			ctx.move_to(self.curve_pts[0][0], self.curve_pts[0][1])
-			for i, p in enumerate(self.curve_pts[:self.curve_indx]):
-				if i == 0 : continue
-				ctx.line_to(p[0], p[1])
-		else:
-			# just draw the curve
-			ctx.move_to(self.control_pts[0][0], self.control_pts[0][1])
-			ctx.curve_to(self.control_pts[1][0], self.control_pts[1][1], 
-						self.control_pts[2][0], self.control_pts[2][1],
-						self.control_pts[3][0], self.control_pts[3][1])
-		ctx.stroke()
-		return ret_curve_done
-
-class Entity:
-	""" Base class for all entities in netbody visualization """
-	def __init__(self, kwarg_keys, **kwargs):
-		chkwargs = kwarg_keys[:]
-		for k,v in kwargs.iteritems():
-			if k not in chkwargs: raise TypeError, "Unexpected arg :: %s" % k
-			indxof = chkwargs.index(k)
-			del(chkwargs[indxof])
-			setattr(self, k, v)
-		if chkwargs: raise TypeError, "Missing arg(s) :: %s" % chkwargs
-		self.last_xy = (0, 0)
-		self.active = False
-		self.is_seed = False
-		self.width = util.CONST.ENTITY_DEFAULT_SIZE
-		self.ext_width = util.CONST.ENTITY_DEFAULT_SIZE
-		self.height = util.CONST.ENTITY_DEFAULT_SIZE
-		self.ext_height = util.CONST.ENTITY_DEFAULT_SIZE
-		self.spiderable = True
-		self.curves = []
-
-	def has_curve(self, type, indx):
-		for c in self.curves:
-			if c.matches(type, indx): return True
-		return False
-	
-	def add_connection(self, type, indx):
-		if not self.has_curve(type, indx):
-			self.curves.append(Curve(type, indx))
-
-	def del_connection(self, type, indx):
-		for i, c in enumerate(self.curves):
-			if c.matches(type, indx): del(self.curves[i]); return
-
-	def approve(self):
-		"""any expensive opperations go here instead of __init__"""
-		pass
-
-	def spider(self):
-		"""spider is always overidden"""
-		raise RuntimeError, "Must override base Entity spider()"
-
-	def matches(self, other):
-		"""the base match checking"""
-		return self.id == other.id
-
-
-	def draw(self, ctx):
-		# have we moved?
-		xy = posi.get_pos(str(self.__class__), self.index)
-		has_changed = xy != self.last_xy
-		self.last_xy = xy
-		curves_done = True
-		for curve in self.curves:
-			curve.set_ctrl_pts(xy[0], xy[0], has_changed)
-			curve.set_curve_pts(has_changed)
-			if not curve.draw(ctx, self.active): curves_done = False
-		if curves_done:
-			self.active = False
-			self.is_seed = False		
-					
-		if self.is_seed : ctx.set_source_rgb(1.0, 0.2, 0.2)
-		else : ctx.set_source_rgb(0.2, 0.2, 0.2)
-		ctx.rectangle(xy[0], xy[1], self.width, self.height)
-		#ctx.close_path()
-		ctx.fill()
-		
-
-class Image(Entity):
+class Image(core.Entity):
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['img_link', 'author_id', 'username', 'title', 'tags'], **kwargs)
+		core.Entity.__init__(self, ['img_link', 'author_id', 'username', 'title', 'tags'], **kwargs)
 		self.id = kwargs['img_link']
 		# username attr came in the form "nobody@flickr.com (username)"
 		self.username = self.username.split('(')[1][:-1]
@@ -197,10 +30,10 @@ class Image(Entity):
 		print "--- an Image (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
-class Tag(Entity):
+class Tag(core.Entity):
 	""" Tag Entity just expects a 'tag' argument in constructor """
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['tag'], **kwargs)
+		core.Entity.__init__(self, ['tag'], **kwargs)
 		self.id = kwargs['tag']
 		# places to store results from api calls
 		self.api_res_flickr = []
@@ -244,9 +77,9 @@ class Tag(Entity):
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
 
-class BlogPost(Entity):
+class BlogPost(core.Entity):
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
+		core.Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
 		self.id = kwargs['blog_link']
 		self.status = 200
 
@@ -272,9 +105,9 @@ class BlogPost(Entity):
 		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
-class UserName(Entity):
+class UserName(core.Entity):
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['names'], **kwargs)
+		core.Entity.__init__(self, ['names'], **kwargs)
 		self.id = reduce(lambda n, n2 : n + n2, self.names.values()) # just has to be a unique id
 		self.limit_to = 5
 		# storage for results from api calls:
@@ -427,9 +260,9 @@ class UserName(Entity):
 			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['media_credit'], tags=yt['media_category']))
 		return ret
 
-class Link(Entity):
+class Link(core.Entity):
 	def __init__(self, **kwargs):
-		Entity.__init__(self, ['url', 'title'], **kwargs)
+		core.Entity.__init__(self, ['url', 'title'], **kwargs)
 		self.id = kwargs['url']
 		self.api_res_delic = []
 		self.status = 200
@@ -464,10 +297,10 @@ class Link(Entity):
 		print "--- a Link (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
-class Video(Entity):
+class Video(core.Entity):
 	def __init__(self, **kwargs):
 		import urlparse
-		Entity.__init__(self, ['url', 'title', 'username', 'tags'], **kwargs)
+		core.Entity.__init__(self, ['url', 'title', 'username', 'tags'], **kwargs)
 		q = urlparse.urlparse(self.url)[4]
 		self.id = q.split("=")[1]
 		self.status = 200
@@ -533,19 +366,17 @@ class Video(Entity):
 
 	def draw(self, ctx):
 		self.proc_files()
-		Entity.draw(self, ctx)
+		core.Entity.draw(self, ctx)
 
 def spider():
-	global entities, seed, pnetwork, posi
-	if not posi:
-		posi = Positioner()
+	global entities, seed, pnetwork
 	if not seed: 
 		if len(entities.keys()) > 0 : raise RuntimeError, "spider without argument only to initialize"
 		entity = Tag(tag='identity')
 		entity.is_seed = True
 		entity.index = 0
 		entities[str(entity.__class__)] = [entity]
-		posi.add_node(str(entity.__class__))
+		core.posi.add_node(str(entity.__class__))
 	else:
 		entity = seed
 	entity.active = True
@@ -584,18 +415,12 @@ def get_or_add(entity):
 		entity.approve()
 		entity.index = len(entities[ekey])
 		entities[ekey].append(entity)
-		posi.add_node(str(entity.__class__))
+		core.posi.add_node(str(entity.__class__))
 		return True, entity
 	else:
 		# first of its type
 		entity.approve()
 		entity.index = 0
 		entities[ekey] = [entity]
-		posi.add_node(str(entity.__class__))
+		core.posi.add_node(str(entity.__class__))
 		return True, entity
-
-if __name__ == '__main__':
-	util.log('INIT')
-	spider()
-	for e in entities:
-		print dir(e)
