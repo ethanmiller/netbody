@@ -12,7 +12,8 @@ class CONST:
 	CURVE_SEG_MIN = 50
 	CURVE_SEG_MAX = 200
 	ENTITY_DEFAULT_SIZE = 2
-	GROW_BOX_N = 0.05
+	GROW_BOX_N = 0.06
+	SHRINK_BOX_N = 0.03
 
 def sizeimg(im):
 	if im.size[0] >= im.size[1]:
@@ -84,3 +85,6 @@ def calculate_bezier(p, steps=30):
 		fdd_per_2 = fdd_per_2 + fddd_per_2
 	points.append(f)
 	return points
+
+def mapval(value, istart, istop, ostart, ostop):
+    return ostart + (ostop*1.0 - ostart*1.0) * ((value*1.0 - istart*1.0) / (istop*1.0 - istart*1.0))

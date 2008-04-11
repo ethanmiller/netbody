@@ -1,15 +1,11 @@
-import core, util, apis.flickr, apis.delic, apis.technorati, apis.youtube
+import base, util, apis.flickr, apis.delic, apis.technorati, apis.youtube
 import random, datetime, urllib2, socket, os
 
 socket.setdefaulttimeout(15)
 
-entities = {}
-seed = None
-pnetwork = None
-
-class Image(core.Entity):
+class Image(base.Entity):
 	def __init__(self, **kwargs):
-		core.Entity.__init__(self, ['img_link', 'author_id', 'username', 'title', 'tags'], **kwargs)
+		base.Entity.__init__(self, ['img_link', 'author_id', 'username', 'title', 'tags'], **kwargs)
 		self.id = kwargs['img_link']
 		# username attr came in the form "nobody@flickr.com (username)"
 		self.username = self.username.split('(')[1][:-1]
@@ -30,10 +26,10 @@ class Image(core.Entity):
 		print "--- an Image (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
-class Tag(core.Entity):
+class Tag(base.Entity):
 	""" Tag Entity just expects a 'tag' argument in constructor """
 	def __init__(self, **kwargs):
-		core.Entity.__init__(self, ['tag'], **kwargs)
+		base.Entity.__init__(self, ['tag'], **kwargs)
 		self.id = kwargs['tag']
 		# places to store results from api calls
 		self.api_res_flickr = []
@@ -77,9 +73,9 @@ class Tag(core.Entity):
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
 
-class BlogPost(core.Entity):
+class BlogPost(base.Entity):
 	def __init__(self, **kwargs):
-		core.Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
+		base.Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
 		self.id = kwargs['blog_link']
 		self.status = 200
 
@@ -105,9 +101,9 @@ class BlogPost(core.Entity):
 		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
-class UserName(core.Entity):
+class UserName(base.Entity):
 	def __init__(self, **kwargs):
-		core.Entity.__init__(self, ['names'], **kwargs)
+		base.Entity.__init__(self, ['names'], **kwargs)
 		self.id = reduce(lambda n, n2 : n + n2, self.names.values()) # just has to be a unique id
 		self.limit_to = 5
 		# storage for results from api calls:
@@ -260,9 +256,9 @@ class UserName(core.Entity):
 			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['media_credit'], tags=yt['media_category']))
 		return ret
 
-class Link(core.Entity):
+class Link(base.Entity):
 	def __init__(self, **kwargs):
-		core.Entity.__init__(self, ['url', 'title'], **kwargs)
+		base.Entity.__init__(self, ['url', 'title'], **kwargs)
 		self.id = kwargs['url']
 		self.api_res_delic = []
 		self.status = 200
@@ -297,10 +293,10 @@ class Link(core.Entity):
 		print "--- a Link (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
-class Video(core.Entity):
+class Video(base.Entity):
 	def __init__(self, **kwargs):
 		import urlparse
-		core.Entity.__init__(self, ['url', 'title', 'username', 'tags'], **kwargs)
+		base.Entity.__init__(self, ['url', 'title', 'username', 'tags'], **kwargs)
 		q = urlparse.urlparse(self.url)[4]
 		self.id = q.split("=")[1]
 		self.status = 200
@@ -366,64 +362,4 @@ class Video(core.Entity):
 
 	def draw(self, ctx):
 		self.proc_files()
-		core.Entity.draw(self, ctx)
-
-def spider():
-	global entities, seed, pnetwork
-	if not seed: 
-		if len(entities.keys()) > 0 : raise RuntimeError, "spider without argument only to initialize"
-		entity = Tag(tag='identity')
-		entity.is_seed = True
-		entity.index = 0
-		entities[str(entity.__class__)] = [entity]
-		core.posi.add_node(str(entity.__class__))
-	else:
-		entity = seed
-	entity.active = True
-	print '\n\n__main spider() call on entity id=%s [%s]__ %s' % (entity.id, entity.__class__, datetime.datetime.today().strftime("%a %I:%M%p"))
-	network = entity.spider() 
-	ncount = len(network)
-	if ncount == 0 or not entity.spiderable:
-		print "~~found 0 other entities, or nonspiderable entity. Reverting to last set"
-		network = pnetwork # reuse the last set and hope we get unstuck
-		ncount = len(network)
-	else:
-		pnetwork = network # save this network in case we need to come back to it
-	rchoice = random.randrange(len(network))
-	addcount = 0
-	for i, e in enumerate(network):
-		added, e = get_or_add(e)
-		if added: addcount += 1
-		# this flag lets entity know to animate
-		e.active = True
-		###### temp
-		e.ext_width = 80
-		e.ext_height = 25
-		# make sure spidering entity has all the connections
-		entity.add_connection(str(e.__class__), e.index)
-		e.del_connection(str(entity.__class__), entity.index)
-		if rchoice == i : 
-			seed = e # choose a seed for next spider
-			e.is_seed = True
-			print "seed id = %s [%s]" % (e.id, e.__class__)
-	print "++ %s entities, and %s of those were new ++" % (ncount, addcount)
-
-def get_or_add(entity):
-	"""if the entity is in the collection already, return the collected one. Otherwise add it to collection
-	returns boolean added, and obj"""
-	ekey = str(entity.__class__)
-	if entities.has_key(ekey):
-		for e in entities[ekey]:
-			if e.matches(entity): return False, e
-		entity.approve()
-		entity.index = len(entities[ekey])
-		entities[ekey].append(entity)
-		core.posi.add_node(str(entity.__class__))
-		return True, entity
-	else:
-		# first of its type
-		entity.approve()
-		entity.index = 0
-		entities[ekey] = [entity]
-		core.posi.add_node(str(entity.__class__))
-		return True, entity
+		base.Entity.draw(self, ctx)

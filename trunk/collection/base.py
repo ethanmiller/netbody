@@ -1,4 +1,4 @@
-import random, util
+import random, util, manager
 from vec2d import vec2d
 
 class Position:
@@ -40,11 +40,10 @@ class Positioner:
 			nx, ny = self.positions_meta[type]['last_pos']
 			ny = ny + util.CONST.GRID_SPACE
 			if ny >= util.CONST.WIN_HEIGHT:
+				print "wrapping a column of type %s " % (type)
 				# we have to bump the other columns to the right
 				for e in self.positions_meta.values():
 					if e['colx'] > self.positions_meta[type]['colx']: e['colx'] = e['colx'] + util.CONST.GRID_SPACE
-				# bump this one
-				self.positions_meta[type]['colx'] = self.positions_meta[type]['colx'] + util.CONST.GRID_SPACE
 				nx = nx + util.CONST.GRID_SPACE
 				ny = util.CONST.GRID_SPACE
 			ni = self.positions_meta[type]['ct'] + 1
@@ -105,10 +104,13 @@ class Curve:
 		if not self.curve_pts or that_xy_changed or this_xy_changed:
 			self.curve_pts = util.calculate_bezier(self.control_pts, self.segments)
 
-	def draw(self, ctx, isactive):
+	def draw(self, ctx, isactive, isseed):
 		# draw out as much of the curve as we have at this point
 		ret_curve_done = True
-		if isactive:
+		if isseed:
+			red = util.mapval(self.curve_indx, 0, len(self.curve_pts), 1.0, 0.7)
+			gb = util.mapval(self.curve_indx, 0, len(self.curve_pts), 0.2, 0.7)
+			ctx.set_source_rgb(red, gb, gb)
 			# draw segment by segment
 			if self.curve_indx < len(self.curve_pts): 
 				self.curve_indx = self.curve_indx + 1
@@ -118,13 +120,14 @@ class Curve:
 				if i == 0 : continue
 				ctx.line_to(p[0], p[1])
 		else:
+			ctx.set_source_rgb(0.7, 0.7, 0.7)
 			# just draw the curve
 			ctx.move_to(self.control_pts[0][0], self.control_pts[0][1])
 			ctx.curve_to(self.control_pts[1][0], self.control_pts[1][1], 
 						self.control_pts[2][0], self.control_pts[2][1],
 						self.control_pts[3][0], self.control_pts[3][1])
 		ctx.stroke()
-		# need to advise endpoint entity when curve is done
+		manager.entity_list[self.end_type][self.end_indx].curve_to_finished = True
 		return ret_curve_done
 
 class Entity:
@@ -140,12 +143,14 @@ class Entity:
 		self.last_xy = (0, 0)
 		self.active = False
 		self.is_seed = False
+		self.next_seed = False
 		self.width = util.CONST.ENTITY_DEFAULT_SIZE
 		self.ext_width = util.CONST.ENTITY_DEFAULT_SIZE
 		self.height = util.CONST.ENTITY_DEFAULT_SIZE
 		self.ext_height = util.CONST.ENTITY_DEFAULT_SIZE
 		self.spiderable = True
 		self.curves = []
+		self.curve_to_finished = False
 
 	def has_curve(self, type, indx):
 		for c in self.curves:
@@ -172,7 +177,6 @@ class Entity:
 		"""the base match checking"""
 		return self.id == other.id
 
-
 	def draw_network(self, ctx):
 		# have we moved?
 		pos = posi.get_pos(str(self.__class__), self.index)
@@ -181,12 +185,24 @@ class Entity:
 		self.last_xy = xy
 		curves_done = True
 		for curve in self.curves:
-			curve.set_ctrl_pts(xy[0], xy[0], has_changed)
+			curve.set_ctrl_pts(xy[0], xy[1], has_changed)
 			curve.set_curve_pts(has_changed)
-			if not curve.draw(ctx, self.active): curves_done = False
-		if curves_done:
+			if not curve.draw(ctx, self.active, self.is_seed): curves_done = False
+		if curves_done and self.is_seed:
+			self.is_seed = False
 			self.active = False
-			self.is_seed = False		
+
+	def shrink_box(self):
+		if self.width > util.CONST.ENTITY_DEFAULT_SIZE:
+			wdiff = self.width - util.CONST.ENTITY_DEFAULT_SIZE
+			self.width = self.width - wdiff*util.CONST.SHRINK_BOX_N
+			if abs(wdiff) < 0.005:
+				self.width = util.CONST.ENTITY_DEFAULT_SIZE
+		if self.height > util.CONST.ENTITY_DEFAULT_SIZE:
+			hdiff = self.height - util.CONST.ENTITY_DEFAULT_SIZE
+			self.height = self.height - hdiff*util.CONST.SHRINK_BOX_N
+			if abs(hdiff) < 0.005:
+				self.height = util.CONST.ENTITY_DEFAULT_SIZE
 
 	def grow_box(self):
 		growing = False
@@ -211,10 +227,14 @@ class Entity:
 		if self.active:
 			# if we're not up to extended size, grow
 			still_growing = self.grow_box()
+			if not still_growing and self.curve_to_finished and not self.is_seed:
+				self.active = False
+				self.curve_to_finished = False # reset this in case we get curved to again...
+		else:
+			self.shrink_box()
 		ctx.rectangle(xy[0], xy[1], self.width, self.height)
 		#ctx.close_path()
 		ctx.fill()
-
 
 
 ################ the positioner class
