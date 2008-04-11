@@ -396,6 +396,9 @@ def spider():
 		if added: addcount += 1
 		# this flag lets entity know to animate
 		e.active = True
+		###### temp
+		e.ext_width = 80
+		e.ext_height = 25
 		# make sure spidering entity has all the connections
 		entity.add_connection(str(e.__class__), e.index)
 		e.del_connection(str(entity.__class__), entity.index)

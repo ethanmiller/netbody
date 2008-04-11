@@ -2,7 +2,7 @@
 from makefont import create_cairo_font_face_for_file
 import cairo, util, collection
 
-class Manager:
+class NetBody:
 	def __init__(self):
 		self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, util.CONST.WIN_WIDTH, util.CONST.WIN_HEIGHT)
 		self.out_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, util.CONST.WIN_WIDTH/2, util.CONST.WIN_HEIGHT/2)
@@ -21,9 +21,14 @@ class Manager:
 				has_active = False
 				esets = collection.entities.values()
 				if esets:
-						for e in reduce(lambda x,y:x+y, esets):
-							if not has_active and e.active: has_active = True
-							e.draw(self.ctx)
+					combined_entities = reduce(lambda x,y:x+y, esets)
+					# draw network first
+					for e in combined_entities:
+						if not has_active and e.active: has_active = True
+						e.draw_network(self.ctx)
+					# draw entities on top
+					for e in combined_entities:
+						e.draw(self.ctx)
 
 				if not has_active:
 					# active nodes have finished drawing, spider again with seed
@@ -42,5 +47,5 @@ class Manager:
 				break
 
 if __name__ == '__main__':
-	mgr = Manager()
-	mgr.draw()
+	nb = NetBody()
+	nb.draw()

@@ -124,6 +124,7 @@ class Curve:
 						self.control_pts[2][0], self.control_pts[2][1],
 						self.control_pts[3][0], self.control_pts[3][1])
 		ctx.stroke()
+		# need to advise endpoint entity when curve is done
 		return ret_curve_done
 
 class Entity:
@@ -172,7 +173,7 @@ class Entity:
 		return self.id == other.id
 
 
-	def draw(self, ctx):
+	def draw_network(self, ctx):
 		# have we moved?
 		pos = posi.get_pos(str(self.__class__), self.index)
 		xy = pos.xy()
@@ -186,11 +187,35 @@ class Entity:
 		if curves_done:
 			self.active = False
 			self.is_seed = False		
-					
+
+	def grow_box(self):
+		growing = False
+		if self.width < self.ext_width:
+			growing = True
+			wdiff = self.ext_width - self.width
+			self.width = self.width + wdiff*util.CONST.GROW_BOX_N
+			if abs(wdiff) < 0.005:
+				self.width = self.ext_width
+		if self.height < self.ext_height:
+			growing = True
+			hdiff = self.ext_height - self.height
+			self.height = self.height + hdiff*util.CONST.GROW_BOX_N
+			if abs(hdiff) < 0.005:
+				self.height = self.ext_height
+		return growing
+
+	def draw(self, ctx):
+		xy = self.last_xy # we can use last_xy here because it was set during draw_network()
 		if self.is_seed : ctx.set_source_rgb(1.0, 0.2, 0.2)
 		else : ctx.set_source_rgb(0.2, 0.2, 0.2)
+		if self.active:
+			# if we're not up to extended size, grow
+			still_growing = self.grow_box()
 		ctx.rectangle(xy[0], xy[1], self.width, self.height)
 		#ctx.close_path()
 		ctx.fill()
-		
+
+
+
+################ the positioner class
 posi = Positioner()
