@@ -11,6 +11,7 @@ class CONST:
 	CURVE_X_VAR_MAX = 200
 	CURVE_SEG_MIN = 50
 	CURVE_SEG_MAX = 200
+	ENTITY_DEFAULT_SIZE = 2
 
 def sizeimg(im):
 	if im.size[0] >= im.size[1]:
