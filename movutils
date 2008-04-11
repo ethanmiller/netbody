@@ -2,7 +2,7 @@
 
 if [ "${1}" = "makemov" ]
 then
-	 ffmpeg -i output/frame%05d.png output.avi
+	 ffmpeg -sameq -i output/frame%05d.png output.avi
 elif [ "${1}" = "delmov" ]
 then
 	echo "del"

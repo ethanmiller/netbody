@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from makefont import create_cairo_font_face_for_file
-import cairo, util, collection
+import cairo, util, collection.manager
 
 class NetBody:
 	def __init__(self):
@@ -15,11 +15,11 @@ class NetBody:
 		n = 0
 		while True:
 			try:
-				self.ctx.set_source_rgb(0.8, 0.8, 0.6) # clear to black
+				self.ctx.set_source_rgb(0.9, 0.9, 0.8) # clear to black
 				self.ctx.paint()
 
 				has_active = False
-				esets = collection.entities.values()
+				esets = collection.manager.entity_list.values()
 				if esets:
 					combined_entities = reduce(lambda x,y:x+y, esets)
 					# draw network first
@@ -32,7 +32,7 @@ class NetBody:
 
 				if not has_active:
 					# active nodes have finished drawing, spider again with seed
-					collection.spider()
+					collection.manager.spider()
 
 				if util.CONST.SAVE_FRAMES:
 					self.out_ctx.set_source_surface(self.surface, 0, 0)
