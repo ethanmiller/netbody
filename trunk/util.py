@@ -6,14 +6,20 @@ class CONST:
 	WIN_WIDTH = 2560 # we'll scale down to 1280x720
 	WIN_HEIGHT = 1440
 	NOISE_WORDS = "about,after,all,also,an,and,another,any,are,as,at,be,because,been,before,being,between,both,but,by,came,can,come,could,did,do,each,for,from,get,got,has,had,he,have,her,here,him,himself,his,how,if,in,into,is,it,like,make,many,me,might,more,most,much,must,my,never,now,of,on,only,or,other,our,out,over,said,same,see,should,since,some,still,such,take,than,that,the,their,them,then,there,these,they,this,those,through,to,too,under,up,very,was,way,we,well,were,what,where,which,while,who,with,would,you,your".split(",")
-	GRID_SPACE = 30
+	GRID_SPACE = 10
 	CURVE_X_VAR_MIN = 50
 	CURVE_X_VAR_MAX = 200
 	CURVE_SEG_MIN = 50
 	CURVE_SEG_MAX = 200
 	ENTITY_DEFAULT_SIZE = 2
-	GROW_BOX_N = 0.06
+	GROW_BOX_VAR_MAX = 0.07
+	GROW_BOX_VAR_MIN = 0.03
 	SHRINK_BOX_N = 0.03
+	DRIFT_HOME_N = 0.005
+	COLOR_DRIFT_N = 0.008
+	COL_DRIFT_N = 0.05
+	NO_OVERLAP_FORCE = 0.01
+	BOX_ARROW_OFFSET = 4
 
 def sizeimg(im):
 	if im.size[0] >= im.size[1]:
