@@ -15,6 +15,7 @@ def spider():
 	else:
 		entity = next_seed
 		entity.is_seed = True
+		entity.next_seed = False
 	entity.active = True
 	print '\n\n__main spider() call on entity id=%s [%s]__ %s' % (entity.id, entity.__class__, datetime.datetime.today().strftime("%a %I:%M%p"))
 	network = entity.spider() 

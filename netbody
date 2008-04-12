@@ -24,7 +24,7 @@ class NetBody:
 					combined_entities = reduce(lambda x,y:x+y, esets)
 					# draw network first
 					for e in combined_entities:
-						if not has_active and e.active: has_active = True
+						if not has_active and e.active and not e.next_seed: has_active = True
 						e.draw_network(self.ctx)
 					# draw entities on top
 					for e in combined_entities:
@@ -41,6 +41,8 @@ class NetBody:
 					self.out_surface.write_to_png("output/frame%05d.png" % n)
 					self.out_ctx.scale(2.0, 2.0)
 					n = n + 1
+				# push entities around
+				collection.manager.base.posi.force_place()
 
 			except KeyboardInterrupt:
 				print "ok, done"
