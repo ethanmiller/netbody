@@ -3,9 +3,12 @@
 if [ "${1}" = "makemov" ]
 then
 	 ffmpeg -sameq -i output/frame%05d.png output.avi
-elif [ "${1}" = "delmov" ]
+elif [ "${1}" = "delfiles" ]
 then
-	echo "del"
+	rm resources/images/*
+	rm -r resources/videos/*
+	rm output/*
+	rm output.avi
 else	
-	echo "makemov or delmov"
+	echo "makemov or delfiles"
 fi

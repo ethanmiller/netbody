@@ -1,5 +1,5 @@
 import base, util, apis.flickr, apis.delic, apis.technorati, apis.youtube
-import random, datetime, urllib2, socket, os
+import random, datetime, urllib2, socket, os, cairo
 
 socket.setdefaulttimeout(15)
 
@@ -11,6 +11,18 @@ class Image(base.Entity):
 		self.username = self.username.split('(')[1][:-1]
 		# taglist is space separated, unless it's a list alerady
 		if type(self.tags) != list : self.tags = self.tags.split(' ')
+		self.im = None
+		self.status = 200
+
+	def approve(self):
+		img_file_path = apis.flickr.dl_image(apis.flickr.photo_url(self.img_link))
+		if img_file_path == None:
+			self.spiderable = False
+			self.status = 400
+			return
+		self.im = cairo.ImageSurface.create_from_png(img_file_path)
+		self.ext_width = self.im.get_width() + util.CONST.ENTITY_DEFAULT_SIZE*2
+		self.ext_height = self.im.get_height() + util.CONST.ENTITY_DEFAULT_SIZE*2
 
 	def spider(self):
 		''' When Image inits, we already have a tag list and the username - create obj based on that...'''
@@ -26,6 +38,18 @@ class Image(base.Entity):
 		print "--- an Image (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
+	def draw(self, ctx):
+		pos = base.posi.get_pos(str(self.__class__), self.index)
+		posx, posy = pos.xy()
+		base.Entity.draw(self, ctx)
+		sc = self.width/self.ext_width*1.0
+		ctx.translate(posx + util.CONST.BOX_MARGIN*sc, posy + util.CONST.BOX_MARGIN*sc)
+		ctx.scale(sc, sc)
+		ctx.set_source_surface(self.im)
+		ctx.paint()
+		ctx.scale(1/sc, 1/sc)
+		ctx.translate(-posx - util.CONST.BOX_MARGIN*sc, -posy - util.CONST.BOX_MARGIN*sc)
+
 class Tag(base.Entity):
 	""" Tag Entity just expects a 'tag' argument in constructor """
 	def __init__(self, **kwargs):
@@ -36,6 +60,11 @@ class Tag(base.Entity):
 		self.api_res_delic = []
 		self.api_res_tech = []
 		self.api_res_yt = []
+
+	def set_extent(self, ctx):
+		width, height = ctx.text_extents(self.tag)[2:4]
+		self.ext_width = width + util.CONST.BOX_MARGIN*2
+		self.ext_height = height + util.CONST.BOX_MARGIN*2
 
 	def spider(self):
 		ret = []
@@ -73,6 +102,21 @@ class Tag(base.Entity):
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
 
+	def draw(self, ctx):
+		ctx.set_font_size(util.CONST.TAG_TEXT_SIZE)
+		if not self.extent_set : self.set_extent(ctx)
+		base.Entity.draw(self, ctx) # let base class draw the square
+		# calc the proportion for scaling by width
+		ctx.set_source_rgb(1.0, 1.0, 1.0)
+		sc = self.width/self.ext_width*1.0
+		x_bearing, y_bearing, w, h = ctx.text_extents(self.tag)[:4]
+		pos = base.posi.get_pos(str(self.__class__), self.index)
+		posx, posy = pos.xy()
+		ctx.move_to(posx + util.CONST.BOX_MARGIN*sc - x_bearing*sc, posy + util.CONST.BOX_MARGIN*sc - y_bearing*sc)
+		ctx.scale(sc, sc)
+		ctx.show_text(self.tag)
+		ctx.scale(1/sc, 1/sc)
+
 class BlogPost(base.Entity):
 	def __init__(self, **kwargs):
 		base.Entity.__init__(self, ['blog_link', 'title', 'summary'], **kwargs)
@@ -88,6 +132,14 @@ class BlogPost(base.Entity):
 		except urllib2.URLError:
 			print "0000 problem with url %s 00000 ------- calling it 404" % self.blog_link
 			self.status = 400
+		###### temp
+		self.ext_width = 80
+		self.ext_height = 25
+
+	def set_extent(self, ctx):
+		width, height = ctx.text_extents(self.title)[2:4]
+		self.ext_width = width + util.CONST.BOX_MARGIN*2
+		self.ext_height = height + util.CONST.BOX_MARGIN*2
 
 	def spider(self):
 		import apis.yahoo
@@ -101,10 +153,27 @@ class BlogPost(base.Entity):
 		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
+	def draw(self, ctx):
+		ctx.set_font_size(util.CONST.BLOG_TEXT_SIZE)
+		if not self.extent_set : self.set_extent(ctx)
+		base.Entity.draw(self, ctx) # let base class draw the square
+		# calc the proportion for scaling by width
+		ctx.set_source_rgb(0.6, 1.0, 0.6)
+		sc = self.width/self.ext_width*1.0
+		x_bearing, y_bearing, w, h = ctx.text_extents(self.title)[:4]
+		pos = base.posi.get_pos(str(self.__class__), self.index)
+		posx, posy = pos.xy()
+		ctx.move_to(posx + util.CONST.BOX_MARGIN*sc - x_bearing*sc, posy + util.CONST.BOX_MARGIN*sc - y_bearing*sc)
+		ctx.scale(sc, sc)
+		ctx.show_text(self.title)
+		ctx.scale(1/sc, 1/sc)
+
 class UserName(base.Entity):
 	def __init__(self, **kwargs):
 		base.Entity.__init__(self, ['names'], **kwargs)
 		self.id = reduce(lambda n, n2 : n + n2, self.names.values()) # just has to be a unique id
+		self.display_name = self.names[self.names.keys()[0]]
+		if self.names.has_key('flickr_display'): self.display_name = self.names['flickr_display']
 		self.limit_to = 5
 		# storage for results from api calls:
 
@@ -118,13 +187,17 @@ class UserName(base.Entity):
 		class yt:
 			vids = []
 
+	def set_extent(self, ctx):
+		width, height = ctx.text_extents(util.CONST.UNAME_LABEL + self.display_name)[2:4]
+		self.ext_width = width + util.CONST.BOX_MARGIN*2
+		self.ext_height = height + util.CONST.BOX_MARGIN*2
+
 	def spider(self):
 		ret = []
 		self.network_count = 0
 		self.branch_out()
 		self.prep_spider()
 		ret = ret + self.spider_flickr()
-		ret = ret + self.spider_delic()
 		ret = ret + self.spider_yt()
 		####
 		if self.network_count == 0:
@@ -132,6 +205,21 @@ class UserName(base.Entity):
 		else:
 			print "--- a UserName (%s) spiders %s other entities..." % (self.id, len(ret))
 		return ret
+
+	def draw(self, ctx):
+		ctx.set_font_size(util.CONST.UNAME_TEXT_SIZE)
+		if not self.extent_set : self.set_extent(ctx)
+		base.Entity.draw(self, ctx) # let base class draw the square
+		# calc the proportion for scaling by width
+		ctx.set_source_rgb(1.0, 1.0, 1.0)
+		sc = self.width/self.ext_width*1.0
+		x_bearing, y_bearing, w, h = ctx.text_extents(self.display_name)[:4]
+		pos = base.posi.get_pos(str(self.__class__), self.index)
+		posx, posy = pos.xy()
+		ctx.move_to(posx + util.CONST.BOX_MARGIN*sc - x_bearing*sc, posy + util.CONST.BOX_MARGIN*sc - y_bearing*sc)
+		ctx.scale(sc, sc)
+		ctx.show_text(util.CONST.UNAME_LABEL + self.display_name)
+		ctx.scale(1/sc, 1/sc)
 	
 	def matches(self, other):
 		"""cross reference names used"""
@@ -273,6 +361,11 @@ class Link(base.Entity):
 			print "0000 problem with url %s 00000 ------- calling it 404" % self.url
 			self.status = 400
 
+	def set_extent(self, ctx):
+		width, height = ctx.text_extents(self.title)[2:4]
+		self.ext_width = width + util.CONST.BOX_MARGIN*2
+		self.ext_height = height + util.CONST.BOX_MARGIN*2
+
 	def spider(self):
 		ret = []
 		limit_to = 5
@@ -293,6 +386,21 @@ class Link(base.Entity):
 		print "--- a Link (%s) spiders %s other entities..." % (self.title, len(ret))
 		return ret
 
+	def draw(self, ctx):
+		ctx.set_font_size(util.CONST.LINK_TEXT_SIZE)
+		if not self.extent_set : self.set_extent(ctx)
+		base.Entity.draw(self, ctx) # let base class draw the square
+		# calc the proportion for scaling by width
+		ctx.set_source_rgb(0.6, 0.6, 1.0)
+		sc = self.width/self.ext_width*1.0
+		x_bearing, y_bearing, w, h = ctx.text_extents(self.title)[:4]
+		pos = base.posi.get_pos(str(self.__class__), self.index)
+		posx, posy = pos.xy()
+		ctx.move_to(posx + util.CONST.BOX_MARGIN*sc - x_bearing*sc, posy + util.CONST.BOX_MARGIN*sc - y_bearing*sc)
+		ctx.scale(sc, sc)
+		ctx.show_text(self.title)
+		ctx.scale(1/sc, 1/sc)
+
 class Video(base.Entity):
 	def __init__(self, **kwargs):
 		import urlparse
@@ -308,6 +416,9 @@ class Video(base.Entity):
 
 	def approve(self):
 		self.proc_files()
+		###### temp
+		self.ext_width = 80
+		self.ext_height = 25
 	
 	def proc_files(self):
 		if self.proc_stage == 0:

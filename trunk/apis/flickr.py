@@ -1,6 +1,6 @@
 # see also http://www.flickr.com/services/api/
 # using flickr json feed http://www.flickr.com/services/feeds/
-import urllib, simplejson, util, flickrapi
+import urllib, simplejson, util, flickrapi, os
 api_key = '4b86073fd285073df5233297bd5f596b'
 
 mark = 0
@@ -72,16 +72,33 @@ def check_for_user(uname):
 	if fid == "all" : return None
 	print "^^ found a flickr usr %s" % uname
 	return fid
-	
-def photo_data(link):
+
+def dl_image(url):
+	from PIL import Image
+	global mark
+	mark = util.pause('flickr', mark)
+	imname = os.path.split(url)[1]
+	print ">>>>>getting flickr img at %s" % url
+	try:
+		nm, headers = urllib.urlretrieve(url, os.path.join("resources", "images", imname))
+	except IOError:
+		print "{{ socket timeout for flickr user_images"
+		return None
+	# cairo can't load jpgs, or I just can't find documentation, wish I hadn't used it...
+	im = Image.open(nm)
+	os.remove(nm)
+	nm = "%s.png" % nm.split(".")[0]
+	im.save(nm)
+	print ">>>>>> got img file %s ..." % nm
+	return nm
+
+def photo_url(link):
+	global mark
+	mark = util.pause('flickr', mark)
 	flickr = flickrapi.FlickrAPI(api_key)
 	# expecting something like http://www.flickr.com/photos/ozten/2366650348/
 	pid = link.split('/')[5]
-	dat = flickr.photos_getInfo(photo_id=pid)
+	dat = flickr.photos_getSizes(photo_id=pid)
 	# return something we can pass directly to Image() constructor
-	ret = {'img_link' : link}
-	ret['author_id'] = dat.photo[0].owner[0]['nsid']
-	ret['username'] = dat.photo[0].owner[0]['username']
-	ret['title'] = dat.photo[0].title[0].text
-	ret['tags'] = [t.text for t in dat.photo[0].tags[0].tag]
-	return ret
+	for sz in dat.sizes[0].size:
+		if sz['label'] == 'Small' : return sz['source']

@@ -20,6 +20,12 @@ class CONST:
 	COL_DRIFT_N = 0.05
 	NO_OVERLAP_FORCE = 0.01
 	BOX_ARROW_OFFSET = 4
+	BOX_MARGIN = 5
+	LINK_TEXT_SIZE = 14
+	TAG_TEXT_SIZE = 16
+	BLOG_TEXT_SIZE = 14
+	UNAME_TEXT_SIZE = 16
+	UNAME_LABEL = "user : "
 
 def sizeimg(im):
 	if im.size[0] >= im.size[1]:
