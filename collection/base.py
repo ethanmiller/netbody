@@ -102,24 +102,35 @@ class Positioner:
 				dist = math.sqrt(xdiff*xdiff + ydiff*ydiff)
 				pushx = xdiff*util.CONST.NO_OVERLAP_FORCE
 				pushy = ydiff*util.CONST.NO_OVERLAP_FORCE
-				if posx - pushx <= 0:
-					pos2.x = pos2.x + 2*pushx
-				elif pos2x + pushx + pos2.w >= util.CONST.WIN_WIDTH:
-					pos.x = pos.x - 2*pushx
-				else:
-					pos2.x = pos2.x + pushx
-					pos.x = pos.x - pushx
 
-				if posy - pushy <= 0:
-					pos2.y = pos2.y + 2*pushy
-				elif pos2y + pushy + pos2.h >= util.CONST.WIN_HEIGHT/2:
-					pos.y = pos.y - 2*pushy
-					if pos2y + pos2.h >= util.CONST.WIN_HEIGHT/2:
-						# could be pushed off the bottome edge
-						pos2.y = pos2.y - 1.0
-				else:
-					pos2.y = pos2.y + pushy
+				pos2.x = pos2.x + pushx
+				pos.x = pos.x - pushx
+				# update actual pos vars
+				pos2x = pos2x + pushx
+				posx = posx - pushx
+				# make sure we're not off the vizualization
+				if pos2x + pos2.w >= util.CONST.WIN_WIDTH or pos2x <= 0:
+					# push both the other way
+					pos2.x = pos2.x - pushx*2
+					pos.x = pos.x - pushx
+				if posx + pos.w >= util.CONST.WIN_WIDTH or posx <= 0:
+					# push both the other way
+					pos.x = pos.x + pushx*2
+					pos2.x + pushx
+				pos2.y = pos2.y + pushy
+				pos.y = pos.y - pushy
+				# update actual pos - not strictly necessary, but for consistency
+				pos2y = pos2y + pushy
+				posy = posy - pushy
+				# make sure we're not pushed off the page
+				if pos2y + pos2.h >= util.CONST.WIN_HEIGHT or pos2y <= 0:
+					# push
+					pos2.y = pos2.y - pushy*2
 					pos.y = pos.y - pushy
+				if posy + pos.h >= util.CONST.WIN_HEIGHT or posy <= 0:
+					# push
+					pos.y = pos.y + pushy*2
+					pos2.y = pos2.y + pushy
 		self.drift_col()
 
 	def drift_col(self):
@@ -193,7 +204,8 @@ class Curve:
 		if isseed:
 			red = util.mapval(self.curve_indx, 0, len(self.curve_pts), 1.0, 0.7)
 			gb = util.mapval(self.curve_indx, 0, len(self.curve_pts), 0.2, 0.7)
-			ctx.set_source_rgb(red, gb, gb)
+			alpha = util.mapval(self.curve_indx, 0, len(self.curve_pts), 1.0, 0.6)
+			ctx.set_source_rgba(red, gb, gb)
 			# draw segment by segment
 			if self.curve_indx < len(self.curve_pts): 
 				self.curve_indx = self.curve_indx + 1
@@ -203,7 +215,7 @@ class Curve:
 				if i == 0 : continue
 				ctx.line_to(p[0], p[1])
 		else:
-			ctx.set_source_rgb(0.7, 0.7, 0.7)
+			ctx.set_source_rgba(0.7, 0.7, 0.7, 0.6)
 			# just draw the curve
 			ctx.move_to(self.control_pts[0][0], self.control_pts[0][1])
 			ctx.curve_to(self.control_pts[1][0], self.control_pts[1][1], 

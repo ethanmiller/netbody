@@ -26,6 +26,7 @@ class CONST:
 	BLOG_TEXT_SIZE = 14
 	UNAME_TEXT_SIZE = 16
 	UNAME_LABEL = "user : "
+	PICERR_PATH = "resources/picerr.png"
 
 def sizeimg(im):
 	if im.size[0] >= im.size[1]:
