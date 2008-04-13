@@ -19,10 +19,11 @@ class Image(base.Entity):
 		if img_file_path == None:
 			self.spiderable = False
 			self.status = 400
-			return
-		self.im = cairo.ImageSurface.create_from_png(img_file_path)
-		self.ext_width = self.im.get_width() + util.CONST.ENTITY_DEFAULT_SIZE*2
-		self.ext_height = self.im.get_height() + util.CONST.ENTITY_DEFAULT_SIZE*2
+			self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
+		else:
+			self.im = cairo.ImageSurface.create_from_png(img_file_path)
+		self.ext_width = self.im.get_width() + util.CONST.BOX_MARGIN*2
+		self.ext_height = self.im.get_height() + util.CONST.BOX_MARGIN*2
 
 	def spider(self):
 		''' When Image inits, we already have a tag list and the username - create obj based on that...'''
@@ -42,13 +43,22 @@ class Image(base.Entity):
 		pos = base.posi.get_pos(str(self.__class__), self.index)
 		posx, posy = pos.xy()
 		base.Entity.draw(self, ctx)
+		if self.width <= util.CONST.ENTITY_DEFAULT_SIZE*3 and self.height <= util.CONST.ENTITY_DEFAULT_SIZE*3: return
 		sc = self.width/self.ext_width*1.0
 		ctx.translate(posx + util.CONST.BOX_MARGIN*sc, posy + util.CONST.BOX_MARGIN*sc)
+		#try:
 		ctx.scale(sc, sc)
 		ctx.set_source_surface(self.im)
 		ctx.paint()
 		ctx.scale(1/sc, 1/sc)
 		ctx.translate(-posx - util.CONST.BOX_MARGIN*sc, -posy - util.CONST.BOX_MARGIN*sc)
+		#except cairo.Error:
+			# scaling error happens here? reset to err pic, and wait till next round to draw
+			#self.status = 400
+			#self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
+			#self.ext_width = self.im.get_width() + util.CONST.BOX_MARGIN*2
+			#self.ext_height = self.im.get_height() + util.CONST.BOX_MARGIN*2
+			
 
 class Tag(base.Entity):
 	""" Tag Entity just expects a 'tag' argument in constructor """
@@ -106,6 +116,7 @@ class Tag(base.Entity):
 		ctx.set_font_size(util.CONST.TAG_TEXT_SIZE)
 		if not self.extent_set : self.set_extent(ctx)
 		base.Entity.draw(self, ctx) # let base class draw the square
+		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
 		ctx.set_source_rgb(1.0, 1.0, 1.0)
 		sc = self.width/self.ext_width*1.0
@@ -157,6 +168,7 @@ class BlogPost(base.Entity):
 		ctx.set_font_size(util.CONST.BLOG_TEXT_SIZE)
 		if not self.extent_set : self.set_extent(ctx)
 		base.Entity.draw(self, ctx) # let base class draw the square
+		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
 		ctx.set_source_rgb(0.6, 1.0, 0.6)
 		sc = self.width/self.ext_width*1.0
@@ -210,6 +222,7 @@ class UserName(base.Entity):
 		ctx.set_font_size(util.CONST.UNAME_TEXT_SIZE)
 		if not self.extent_set : self.set_extent(ctx)
 		base.Entity.draw(self, ctx) # let base class draw the square
+		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
 		ctx.set_source_rgb(1.0, 1.0, 1.0)
 		sc = self.width/self.ext_width*1.0
@@ -390,6 +403,7 @@ class Link(base.Entity):
 		ctx.set_font_size(util.CONST.LINK_TEXT_SIZE)
 		if not self.extent_set : self.set_extent(ctx)
 		base.Entity.draw(self, ctx) # let base class draw the square
+		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
 		ctx.set_source_rgb(0.6, 0.6, 1.0)
 		sc = self.width/self.ext_width*1.0
