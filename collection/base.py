@@ -231,6 +231,7 @@ class Entity:
 		self.ext_width = util.CONST.ENTITY_DEFAULT_SIZE
 		self.height = util.CONST.ENTITY_DEFAULT_SIZE
 		self.ext_height = util.CONST.ENTITY_DEFAULT_SIZE
+		self.extent_set = False
 		self.spiderable = True
 		self.curves = []
 		self.curve_to_finished = False

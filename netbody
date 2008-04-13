@@ -9,7 +9,6 @@ class NetBody:
 		self.ctx = cairo.Context(self.surface)
 		self.out_ctx = cairo.Context(self.out_surface)
 		self.ctx.set_font_face(create_cairo_font_face_for_file("resources/Inconsolata.otf"))
-		self.ctx.set_font_size(24)
 	
 	def draw(self):
 		n = 0
