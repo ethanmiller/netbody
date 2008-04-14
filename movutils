@@ -7,8 +7,8 @@ elif [ "${1}" = "delfiles" ]
 then
 	rm resources/images/*
 	rm -r resources/videos/*
-	rm output/*
-	rm output.avi
+	find output/ -type f -name *.png -delete
+	find . -name output.avi -delete
 else	
 	echo "makemov or delfiles"
 fi

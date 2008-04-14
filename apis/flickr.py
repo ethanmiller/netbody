@@ -75,6 +75,7 @@ def check_for_user(uname):
 
 def dl_image(url):
 	from PIL import Image
+	if not url: return None
 	global mark
 	mark = util.pause('flickr', mark)
 	imname = os.path.split(url)[1]
