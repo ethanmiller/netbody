@@ -40,6 +40,7 @@ def spider():
 			next_seed = e # choose a seed for next spider
 			e.next_seed = True
 			print "seed id = %s [%s]" % (e.id, e.__class__)
+	util.log('START_SPIDER')
 	print "++ %s entities, and %s of those were new ++" % (ncount, addcount)
 
 def get_or_add(entity):

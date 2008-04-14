@@ -1,5 +1,5 @@
 import base, util, apis.flickr, apis.delic, apis.technorati, apis.youtube
-import random, datetime, urllib2, socket, os, cairo
+import random, datetime, urllib2, socket, os, cairo, time
 
 socket.setdefaulttimeout(15)
 
@@ -29,7 +29,7 @@ class Image(base.Entity):
 		''' When Image inits, we already have a tag list and the username - create obj based on that...'''
 		ret = []
 		# could have gobs of tags..
-		for t in random.sample(self.tags, min(len(self.tags), 10)):
+		for t in random.sample(self.tags, min(len(self.tags), 3)):
 			t = t.strip()
 			if len(t) > 1 : ret.append(Tag(tag=t))
 		dnames = {'flickr_display' : self.username, 'flickr_id' : self.author_id}
@@ -46,18 +46,11 @@ class Image(base.Entity):
 		if self.width <= util.CONST.ENTITY_DEFAULT_SIZE*3 and self.height <= util.CONST.ENTITY_DEFAULT_SIZE*3: return
 		sc = self.width/self.ext_width*1.0
 		ctx.translate(posx + util.CONST.BOX_MARGIN*sc, posy + util.CONST.BOX_MARGIN*sc)
-		#try:
 		ctx.scale(sc, sc)
 		ctx.set_source_surface(self.im)
 		ctx.paint()
 		ctx.scale(1/sc, 1/sc)
 		ctx.translate(-posx - util.CONST.BOX_MARGIN*sc, -posy - util.CONST.BOX_MARGIN*sc)
-		#except cairo.Error:
-			# scaling error happens here? reset to err pic, and wait till next round to draw
-			#self.status = 400
-			#self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
-			#self.ext_width = self.im.get_width() + util.CONST.BOX_MARGIN*2
-			#self.ext_height = self.im.get_height() + util.CONST.BOX_MARGIN*2
 			
 
 class Tag(base.Entity):
@@ -78,8 +71,9 @@ class Tag(base.Entity):
 
 	def spider(self):
 		ret = []
-		# currently 5 random samples from each of these...
-		limit_to = 5
+		# currently 1 random samples from each of these...
+		limit_to = 3
+		yt_limit_to = 1
 		# flickr
 		if not self.api_res_flickr:
 			self.api_res_flickr = apis.flickr.by_tag(self.tag)
@@ -105,8 +99,7 @@ class Tag(base.Entity):
 		if not self.api_res_yt:
 			self.api_res_yt = apis.youtube.by_tag(self.tag)
 			random.shuffle(self.api_res_yt)
-		# better get just 2 at a time
-		for i in range(min(2, len(self.api_res_yt))):
+		for i in range(min(yt_limit_to, len(self.api_res_yt))):
 			yt = self.api_res_yt.pop(0)
 			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['media_credit'], tags=yt['media_category']))
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
@@ -158,7 +151,7 @@ class BlogPost(base.Entity):
 		# summary gave us a little text description of the blog post...
 		# yahoo term extration gets 'keywords' out of that...
 		for term in apis.yahoo.termExtraction(self.summary):
-			for t in term.split(' '):
+			for t in term.split(' ')[:3]:
 				t = t.strip()
 				if len(t) > 1 and t not in util.CONST.NOISE_WORDS: ret.append(Tag(tag=t))
 		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
@@ -186,7 +179,7 @@ class UserName(base.Entity):
 		self.id = reduce(lambda n, n2 : n + n2, self.names.values()) # just has to be a unique id
 		self.display_name = self.names[self.names.keys()[0]]
 		if self.names.has_key('flickr_display'): self.display_name = self.names['flickr_display']
-		self.limit_to = 5
+		self.limit_to = 2
 		# storage for results from api calls:
 
 	class api_res:
@@ -381,7 +374,7 @@ class Link(base.Entity):
 
 	def spider(self):
 		ret = []
-		limit_to = 5
+		limit_to = 3
 		if not self.api_res_delic:
 			self.api_res_delic = apis.delic.url_data(self.url)
 			random.shuffle(self.api_res_delic)
@@ -427,12 +420,32 @@ class Video(base.Entity):
 		self.dl = None
 		self.splitvid = None
 		self.splitaud = None
+		self.im = None
+		self.vid_indx = 0
+		self.img_set = []
+		self.vid_launched = False
 
 	def approve(self):
-		self.proc_files()
-		###### temp
-		self.ext_width = 80
-		self.ext_height = 25
+		# pretty much have to wait till we get to stage two here - won't have any images to work with till then
+		while self.proc_stage < 2:
+			if self.proc_stage == -1: break
+			self.proc_files()
+			print ">>>> waiting for yt video %s" % self.title
+			time.sleep(3)
+		self.set_next_frame()
+		self.ext_width = self.im.get_width() + util.CONST.BOX_MARGIN*2
+		self.ext_height = self.im.get_height() + util.CONST.BOX_MARGIN*2
+
+	def set_next_frame(self):
+		if self.proc_stage == -1:
+			if not self.im:
+				self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
+			return
+		if not self.img_set:
+			path = os.path.join('resources', 'videos', self.id)
+			self.img_set = [os.path.join(path, x) for x in os.listdir(path) if x.endswith('png')]
+		self.im = cairo.ImageSurface.create_from_png(self.img_set[self.vid_indx])
+		self.vid_indx = (self.vid_indx + 1) % len(self.img_set)
 	
 	def proc_files(self):
 		if self.proc_stage == 0:
@@ -478,7 +491,7 @@ class Video(base.Entity):
 	def spider(self):
 		"""already have user, and tags"""
 		ret = []
-		for t in random.sample(self.tags, min(len(self.tags), 8)):
+		for t in random.sample(self.tags, min(len(self.tags), 3)):
 			t = t.strip()
 			if len(t) > 1 : ret.append(Tag(tag=t))
 		ret.append(UserName(names={'youtube' : self.username}))
@@ -486,5 +499,18 @@ class Video(base.Entity):
 		return ret
 
 	def draw(self, ctx):
-		self.proc_files()
+		pos = base.posi.get_pos(str(self.__class__), self.index)
+		posx, posy = pos.xy()
 		base.Entity.draw(self, ctx)
+		if self.width <= util.CONST.ENTITY_DEFAULT_SIZE*3 and self.height <= util.CONST.ENTITY_DEFAULT_SIZE*3: return
+		if not self.vid_launched:
+			util.log(os.path.join('resources', 'videos', self.id, 'audio.mp3'))
+			self.vid_launched = True
+		sc = self.width/self.ext_width*1.0
+		ctx.translate(posx + util.CONST.BOX_MARGIN*sc, posy + util.CONST.BOX_MARGIN*sc)
+		ctx.scale(sc, sc)
+		ctx.set_source_surface(self.im)
+		ctx.paint()
+		ctx.scale(1/sc, 1/sc)
+		ctx.translate(-posx - util.CONST.BOX_MARGIN*sc, -posy - util.CONST.BOX_MARGIN*sc)
+		self.set_next_frame()

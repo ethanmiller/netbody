@@ -25,16 +25,22 @@ class Position:
 		return (self.w, self.h)
 
 	def drift_home(self):
+		hithomex = False
+		hithomey = False
 		if self.x != self.homex:
 			xdiff = self.homex - self.x 
 			self.x = self.x + xdiff*util.CONST.DRIFT_HOME_N 
 			if abs(xdiff) < 0.005:
 				self.x = self.homex
+				hithomex = True
 		if self.y != self.homey:
 			ydiff = self.homey - self.y 
 			self.y = self.y + ydiff*util.CONST.DRIFT_HOME_N
 			if abs(ydiff) < 0.005:
 				self.y = self.homey
+				hithomey = True
+		if hithomey and hithomex: 
+			util.log('ENT_HIT_HOME')
 
 class Positioner:
 	def __init__(self):
@@ -247,6 +253,7 @@ class Entity:
 		self.spiderable = True
 		self.curves = []
 		self.curve_to_finished = False
+		self.curve_to_finished_last = False
 		self.grow_box_n = random.uniform(util.CONST.GROW_BOX_VAR_MIN, util.CONST.GROW_BOX_VAR_MAX)
 		self.r = 0.2
 		self.gb = 0.2
@@ -315,6 +322,7 @@ class Entity:
 		if curves_done and self.is_seed:
 			self.is_seed = False
 			self.active = False
+			util.log('ENT_FINISH_SPIDER')
 
 	def set_col(self, ctx):
 		targ = 0.2
@@ -349,6 +357,9 @@ class Entity:
 			ctx.fill()
 		# update posi about my position
 		posi.update_size(str(self.__class__), self.index, self.width, self.height)
+		if self.curve_to_finished != self.curve_to_finished_last and self.curve_to_finished:
+			util.log('ENT_CURVE_GOT_ME')
+		self.curve_to_finished_last = self.curve_to_finished
 
 
 ################ the positioner class

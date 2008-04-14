@@ -42,11 +42,12 @@ class NetBody:
 					n = n + 1
 				# push entities around
 				collection.manager.base.posi.force_place()
-
+				util.log('ENDFRAME')
 			except KeyboardInterrupt:
 				print "ok, done"
 				break
 
 if __name__ == '__main__':
 	nb = NetBody()
+	util.log('INIT')
 	nb.draw()
