@@ -210,8 +210,8 @@ class Curve:
 		if isseed:
 			red = util.mapval(self.curve_indx, 0, len(self.curve_pts), 1.0, 0.7)
 			gb = util.mapval(self.curve_indx, 0, len(self.curve_pts), 0.2, 0.7)
-			alpha = util.mapval(self.curve_indx, 0, len(self.curve_pts), 1.0, 0.6)
-			ctx.set_source_rgba(red, gb, gb)
+			alpha = util.mapval(self.curve_indx, 0, len(self.curve_pts), 1.0, 0.5)
+			ctx.set_source_rgba(red, gb, gb, alpha)
 			# draw segment by segment
 			if self.curve_indx < len(self.curve_pts): 
 				self.curve_indx = self.curve_indx + 1
@@ -221,7 +221,7 @@ class Curve:
 				if i == 0 : continue
 				ctx.line_to(p[0], p[1])
 		else:
-			ctx.set_source_rgba(0.7, 0.7, 0.7, 0.6)
+			ctx.set_source_rgba(0.7, 0.7, 0.7, 0.5)
 			# just draw the curve
 			ctx.move_to(self.control_pts[0][0], self.control_pts[0][1])
 			ctx.curve_to(self.control_pts[1][0], self.control_pts[1][1], 
@@ -326,14 +326,21 @@ class Entity:
 
 	def set_col(self, ctx):
 		targ = 0.2
-		if self.is_seed : targ = 0.8
-		elif self.next_seed : targ = 0.6
+		alpha = 0.8
+		if self.is_seed : 
+			targ = 0.8
+		elif self.next_seed : 
+			targ = 0.6
+		if hasattr(self, 'status'):
+			if self.status != 200:
+				targ = 0.4
+				alpha = 0.4
 		if self.r != targ:
 			coldiff = targ - self.r 
 			self.r = self.r + coldiff*util.CONST.COLOR_DRIFT_N
 			if abs(coldiff) < 0.005:
 				self.r = targ
-		ctx.set_source_rgb(self.r, self.gb, self.gb)
+		ctx.set_source_rgba(self.r, self.gb, self.gb, alpha)
 
 	def draw(self, ctx):
 		xy = self.last_pos.xy() # we can use last_pos here because it was set during draw_network()
