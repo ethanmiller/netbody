@@ -115,11 +115,11 @@ class Positioner:
 				pos2x = pos2x + pushx
 				posx = posx - pushx
 				# make sure we're not off the vizualization
-				if pos2x + pos2.w >= util.CONST.WIN_WIDTH or pos2x <= 0:
+				if pos2x + pos2.w >= util.CONST.WIN_WIDTH/2 or pos2x <= 0:
 					# push both the other way
 					pos2.x = pos2.x - pushx*2
 					pos.x = pos.x - pushx
-				if posx + pos.w >= util.CONST.WIN_WIDTH or posx <= 0:
+				if posx + pos.w >= util.CONST.WIN_WIDTH/2 or posx <= 0:
 					# push both the other way
 					pos.x = pos.x + pushx*2
 					pos2.x + pushx
@@ -129,11 +129,11 @@ class Positioner:
 				pos2y = pos2y + pushy
 				posy = posy - pushy
 				# make sure we're not pushed off the page
-				if pos2y + pos2.h >= util.CONST.WIN_HEIGHT or pos2y <= 0:
+				if pos2y + pos2.h >= util.CONST.WIN_HEIGHT/2 or pos2y <= 0:
 					# push
 					pos2.y = pos2.y - pushy*2
 					pos.y = pos.y - pushy
-				if posy + pos.h >= util.CONST.WIN_HEIGHT or posy <= 0:
+				if posy + pos.h >= util.CONST.WIN_HEIGHT/2 or posy <= 0:
 					# push
 					pos.y = pos.y + pushy*2
 					pos2.y = pos2.y + pushy
@@ -333,8 +333,9 @@ class Entity:
 			targ = 0.6
 		if hasattr(self, 'status'):
 			if self.status != 200:
-				targ = 0.4
-				alpha = 0.4
+				targ = 1.0
+				self.gb = 0.0
+				alpha = 1.0
 		if self.r != targ:
 			coldiff = targ - self.r 
 			self.r = self.r + coldiff*util.CONST.COLOR_DRIFT_N

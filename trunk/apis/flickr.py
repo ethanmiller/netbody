@@ -1,4 +1,4 @@
-# see also http://www.flickr.com/services/api/
+# using flickrapi from http://flickrapi.sourceforge.net/
 # using flickr json feed http://www.flickr.com/services/feeds/
 import urllib, simplejson, util, flickrapi, os
 api_key = '4b86073fd285073df5233297bd5f596b'
