@@ -150,8 +150,8 @@ class BlogPost(base.Entity):
 		ret = []
 		# summary gave us a little text description of the blog post...
 		# yahoo term extration gets 'keywords' out of that...
-		for term in apis.yahoo.termExtraction(self.summary):
-			for t in term.split(' ')[:3]:
+		for term in apis.yahoo.termExtraction(self.summary)[:3]:
+			for t in term.split(' '):
 				t = t.strip()
 				if len(t) > 1 and t not in util.CONST.NOISE_WORDS: ret.append(Tag(tag=t))
 		print "--- a BlogPost (%s) spiders %s other entities..." % (self.title, len(ret))
@@ -179,8 +179,7 @@ class UserName(base.Entity):
 		self.id = reduce(lambda n, n2 : n + n2, self.names.values()) # just has to be a unique id
 		self.display_name = self.names[self.names.keys()[0]]
 		if self.names.has_key('flickr_display'): self.display_name = self.names['flickr_display']
-		self.limit_to = 2
-		# storage for results from api calls:
+		self.limit_to = 4
 
 	class api_res:
 		class flickr:
@@ -438,12 +437,15 @@ class Video(base.Entity):
 
 	def set_next_frame(self):
 		if self.proc_stage == -1:
-			if not self.im:
-				self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
+			if not self.im: self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
 			return
 		if not self.img_set:
 			path = os.path.join('resources', 'videos', self.id)
 			self.img_set = [os.path.join(path, x) for x in os.listdir(path) if x.endswith('png')]
+			if not self.img_set:
+				# seems some videos can't be split
+				if not self.im: self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
+				return
 		self.im = cairo.ImageSurface.create_from_png(self.img_set[self.vid_indx])
 		self.vid_indx = (self.vid_indx + 1) % len(self.img_set)
 	

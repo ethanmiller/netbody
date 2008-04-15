@@ -5,7 +5,9 @@ then
 	 ffmpeg -sameq -i output/frame%05d.png output.avi
 elif [ "${1}" = "delfiles" ]
 then
-	rm resources/images/*
+	find resources/images/ -type f -name *.png -delete
+	find resources/videos/ -type f -name *.flv -delete
+	find resources/videos/ -type f -name *.png -delete
 	rm -r resources/videos/*
 	find output/ -type f -name *.png -delete
 	find . -name output.avi -delete
