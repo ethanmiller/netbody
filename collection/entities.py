@@ -101,7 +101,7 @@ class Tag(base.Entity):
 			random.shuffle(self.api_res_yt)
 		for i in range(min(yt_limit_to, len(self.api_res_yt))):
 			yt = self.api_res_yt.pop(0)
-			ret.append(Video(url=yt['link'], title=yt['title'], username=yt.get('media_credit', 'none'), tags=yt['media_category']))
+			ret.append(Video(url=yt['link'], title=yt['title'], username=yt.get('media_credit', 'none'), tags=yt.get('media_category', '')))
 		print "--- a Tag (%s) spiders %s other entities..." % (self.tag, len(ret))
 		return ret
 
