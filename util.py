@@ -1,4 +1,4 @@
-import math, Image
+import math
 
 class CONST:
 	SAVE_FRAMES = True
@@ -15,7 +15,7 @@ class CONST:
 	GROW_BOX_VAR_MAX = 0.07
 	GROW_BOX_VAR_MIN = 0.03
 	SHRINK_BOX_N = 0.03
-	DRIFT_HOME_N = 0.005
+	DRIFT_HOME_N = 0.0005
 	COLOR_DRIFT_N = 0.008
 	COL_DRIFT_N = 0.05
 	NO_OVERLAP_FORCE = 0.01
@@ -27,15 +27,6 @@ class CONST:
 	UNAME_TEXT_SIZE = 16
 	UNAME_LABEL = "user : "
 	PICERR_PATH = "resources/picerr.png"
-
-def sizeimg(im):
-	if im.size[0] >= im.size[1]:
-		im.thumbnail(CONST.THUMBSIZE, Image.ANTIALIAS)
-		return im
-	else:
-		fac = (CONST.THUMBSIZE[0]*1.0)/im.size[0]
-		ysize = int((im.size[1]*1.0)*fac)
-		return im.resize((CONST.THUMBSIZE[0], ysize), Image.ANTIALIAS)
 
 def log(msg):
 	if msg == 'INIT':
