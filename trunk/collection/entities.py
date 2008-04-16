@@ -347,7 +347,7 @@ class UserName(base.Entity):
 		# just get 2 vids
 		for i in range(min(2, len(self.api_res.yt.vids))):
 			yt = self.api_res.yt.vids.pop(0)
-			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['media_credit'], tags=yt['media_category']))
+			ret.append(Video(url=yt['link'], title=yt['title'], username=yt.get('media_credit', 'none'), tags=yt.get('media_category', '')))
 		self.network_count = self.network_count + len(ret)
 		return ret
 
