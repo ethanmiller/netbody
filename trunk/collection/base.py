@@ -25,21 +25,20 @@ class Position:
 		return (self.w, self.h)
 
 	def drift_home(self):
-		hithomex = False
-		hithomey = False
+		arrival = False
 		if self.x != self.homex:
 			xdiff = self.homex - self.x 
 			self.x = self.x + xdiff*util.CONST.DRIFT_HOME_N 
 			if abs(xdiff) < 0.005:
 				self.x = self.homex
-				hithomex = True
+				arrival = True
 		if self.y != self.homey:
 			ydiff = self.homey - self.y 
 			self.y = self.y + ydiff*util.CONST.DRIFT_HOME_N
 			if abs(ydiff) < 0.005:
 				self.y = self.homey
-				hithomey = True
-		if hithomey and hithomex: 
+				arrival = True
+		if arrival and self.y == self.homey and self.x == self.homex:
 			util.log('ENT_HIT_HOME')
 
 class Positioner:
