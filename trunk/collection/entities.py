@@ -426,7 +426,7 @@ class Video(base.Entity):
 		q = urlparse.urlparse(self.url)[4]
 		self.id = q.split("=")[1]
 		self.status = 200
-		if type(self.tags) != list : self.tags = self.tags.split(' ')
+		if type(self.tags) == str : self.tags = self.tags.split(' ')
 		self.proc_stage = 0
 		self.dl = None
 		self.splitvid = None
@@ -454,6 +454,7 @@ class Video(base.Entity):
 		if not self.img_set:
 			path = os.path.join('resources', 'videos', self.id)
 			self.img_set = [os.path.join(path, x) for x in os.listdir(path) if x.endswith('png')]
+			self.img_set.sort()
 			if not self.img_set:
 				# seems some videos can't be split
 				if not self.im: self.im = cairo.ImageSurface.create_from_png(util.CONST.PICERR_PATH)
