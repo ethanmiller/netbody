@@ -2,15 +2,15 @@
 
 if [ "${1}" = "makemov" ]
 then
-	 ffmpeg -sameq -i output/frame%05d.png output.avi
+	 ffmpeg -sameq -i output/frame%05d.png output/mov.avi
 elif [ "${1}" = "delfiles" ]
 then
 	find resources/images/ -type f -name *.png -delete
 	find resources/videos/ -type f -name *.flv -delete
 	find resources/videos/ -type f -name *.png -delete
-	rm -r resources/videos/*
+	#rm -r resources/videos/*
 	find output/ -type f -name *.png -delete
-	find . -name output.avi -delete
+	find . -name mov.avi -delete
 else	
 	echo "makemov or delfiles"
 fi
