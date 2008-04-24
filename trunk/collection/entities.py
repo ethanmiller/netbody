@@ -116,7 +116,7 @@ class Tag(base.Entity):
 		base.Entity.draw(self, ctx) # let base class draw the square
 		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
-		ctx.set_source_rgb(1.0, 1.0, 1.0)
+		ctx.set_source_rgb(*util.CONST.TAG_TXT_COLOR)
 		sc = self.width/self.ext_width*1.0
 		x_bearing, y_bearing, w, h = ctx.text_extents(self.tag)[:4]
 		pos = base.posi.get_pos(str(self.__class__), self.index)
@@ -168,7 +168,7 @@ class BlogPost(base.Entity):
 		base.Entity.draw(self, ctx) # let base class draw the square
 		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
-		ctx.set_source_rgb(0.6, 1.0, 0.6)
+		ctx.set_source_rgb(*util.CONST.BLOG_TXT_COLOR)
 		sc = self.width/self.ext_width*1.0
 		x_bearing, y_bearing, w, h = ctx.text_extents(self.title)[:4]
 		pos = base.posi.get_pos(str(self.__class__), self.index)
@@ -222,7 +222,7 @@ class UserName(base.Entity):
 		base.Entity.draw(self, ctx) # let base class draw the square
 		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
-		ctx.set_source_rgb(1.0, 1.0, 1.0)
+		ctx.set_source_rgb(*util.CONST.USER_TXT_COLOR)
 		sc = self.width/self.ext_width*1.0
 		x_bearing, y_bearing, w, h = ctx.text_extents(self.display_name)[:4]
 		pos = base.posi.get_pos(str(self.__class__), self.index)
@@ -357,6 +357,8 @@ class UserName(base.Entity):
 				tgs = yt['media_category']
 			elif yt.has_key('tags'):
 				tgs = yt['tags'][0]['term']
+			if tgs.strip() == '':
+				self.spiderable = False # this leads to bouncing back and forth between a user and their vids
 			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['author_detail']['name'], tags=tgs))
 		self.network_count = self.network_count + len(ret)
 		return ret
@@ -409,7 +411,7 @@ class Link(base.Entity):
 		base.Entity.draw(self, ctx) # let base class draw the square
 		if self.width == util.CONST.ENTITY_DEFAULT_SIZE and self.height == util.CONST.ENTITY_DEFAULT_SIZE: return
 		# calc the proportion for scaling by width
-		ctx.set_source_rgb(0.6, 0.6, 1.0)
+		ctx.set_source_rgb(*util.CONST.LINK_TXT_COLOR)
 		sc = self.width/self.ext_width*1.0
 		x_bearing, y_bearing, w, h = ctx.text_extents(self.title)[:4]
 		pos = base.posi.get_pos(str(self.__class__), self.index)
