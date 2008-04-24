@@ -6,7 +6,7 @@ class CONST:
 	WIN_WIDTH = 2560 # we'll scale down to 1280x720
 	WIN_HEIGHT = 1440
 	NOISE_WORDS = "about,after,all,also,an,and,another,any,are,as,at,be,because,been,before,being,between,both,but,by,came,can,come,could,did,do,each,for,from,get,got,has,had,he,have,her,here,him,himself,his,how,if,in,into,is,it,like,make,many,me,might,more,most,much,must,my,never,now,of,on,only,or,other,our,out,over,said,same,see,should,since,some,still,such,take,than,that,the,their,them,then,there,these,they,this,those,through,to,too,under,up,very,was,way,we,well,were,what,where,which,while,who,with,would,you,your".split(",")
-	GRID_SPACE = 10
+	GRID_SPACE = 20
 	CURVE_X_VAR_MIN = 50
 	CURVE_X_VAR_MAX = 200
 	CURVE_SEG_MIN = 50
@@ -27,6 +27,10 @@ class CONST:
 	UNAME_TEXT_SIZE = 16
 	UNAME_LABEL = "user : "
 	PICERR_PATH = "resources/picerr.png"
+	LINK_TXT_COLOR = (0.8, 0.8, 1.0)
+	BLOG_TXT_COLOR = (0.8, 1.0, 0.8)
+	TAG_TXT_COLOR = (1.0, 1.0, 1.0)
+	USER_TXT_COLOR = (1.0, 1.0, 0.8)
 
 def log(msg):
 	if msg == 'INIT':

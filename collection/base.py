@@ -86,6 +86,13 @@ class Positioner:
 	def force_place(self):
 		pad = util.CONST.BOX_ARROW_OFFSET*2 
 		for i, pos in enumerate(self.positions):
+			posx, posy = pos.xy() # use this to get abs x position
+			# first we need to make sure we're not pushed off the bottom
+			# of the screen, regardless of force placement
+			if posy + pos.h >= util.CONST.WIN_HEIGHT/2:
+				xtra = (posy + pos.h) - (util.CONST.WIN_HEIGHT/2)
+				pos.y = posy - xtra
+				posy = pos.y
 			for pos2 in self.positions[i+1:]:
 				has_minimized = False
 				if pos.w == util.CONST.ENTITY_DEFAULT_SIZE and pos.h == util.CONST.ENTITY_DEFAULT_SIZE:
@@ -95,7 +102,6 @@ class Positioner:
 					has_minimized = True
 					pos2.drift_home()
 				if has_minimized: continue
-				posx, posy = pos.xy() # use this to get abs x position
 				pos2x, pos2y = pos2.xy()
 				if posy + pos.h + pad < pos2y: continue # bottom of pos above top of pos2
 				if posy > pos2y + pos2.h + pad: continue # top of pos below bottom of pos2
