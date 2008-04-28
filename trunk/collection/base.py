@@ -87,12 +87,16 @@ class Positioner:
 		pad = util.CONST.BOX_ARROW_OFFSET*2 
 		for i, pos in enumerate(self.positions):
 			posx, posy = pos.xy() # use this to get abs x position
-			# first we need to make sure we're not pushed off the bottom
+			# first we need to make sure we're not pushed off the bottom or left side
 			# of the screen, regardless of force placement
 			if posy + pos.h >= util.CONST.WIN_HEIGHT/2:
 				xtra = (posy + pos.h) - (util.CONST.WIN_HEIGHT/2)
 				pos.y = posy - xtra
 				posy = pos.y
+			if posx + pos.w >= util.CONST.WIN_WIDTH/2:
+				xtra = (posx + pos.w) - (util.CONST.WIN_WIDTH/2)
+				pos.x = pos.x - xtra # x is different than y because x is a delta off column pos
+				posx = posx - xtra
 			for pos2 in self.positions[i+1:]:
 				has_minimized = False
 				if pos.w == util.CONST.ENTITY_DEFAULT_SIZE and pos.h == util.CONST.ENTITY_DEFAULT_SIZE:
