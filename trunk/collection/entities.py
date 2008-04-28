@@ -357,8 +357,6 @@ class UserName(base.Entity):
 				tgs = yt['media_category']
 			elif yt.has_key('tags'):
 				tgs = yt['tags'][0]['term']
-			if tgs.strip() == '':
-				self.spiderable = False # this leads to bouncing back and forth between a user and their vids
 			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['author_detail']['name'], tags=tgs))
 		self.network_count = self.network_count + len(ret)
 		return ret
@@ -428,7 +426,11 @@ class Video(base.Entity):
 		q = urlparse.urlparse(self.url)[4]
 		self.id = q.split("=")[1]
 		self.status = 200
-		if type(self.tags) == str : self.tags = self.tags.split(' ')
+		if type(self.tags) == str : 
+			if self.tags.strip() == '':
+				self.spiderable = False
+			else:
+				self.tags = self.tags.split(' ')
 		self.proc_stage = 0
 		self.dl = None
 		self.splitvid = None
