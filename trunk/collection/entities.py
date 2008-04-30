@@ -357,6 +357,9 @@ class UserName(base.Entity):
 				tgs = yt['media_category']
 			elif yt.has_key('tags'):
 				tgs = yt['tags'][0]['term']
+			if tgs.strip() == '' and not self.names.has_key('del.icio.us') and not self.names.has_key('flickr_id'):
+				# a youtube user with no tags on vids leads to bouncing back and forth between the user and their vids
+				self.spiderable = False 
 			ret.append(Video(url=yt['link'], title=yt['title'], username=yt['author_detail']['name'], tags=tgs))
 		self.network_count = self.network_count + len(ret)
 		return ret
